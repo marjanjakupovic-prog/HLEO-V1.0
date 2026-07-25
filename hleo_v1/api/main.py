@@ -1,0 +1,98 @@
+from fastapi import FastAPI, Form
+from fastapi.responses import HTMLResponse
+from sqlalchemy import select
+
+from core.database import SessionLocal
+from core.models import ClinicalProfile
+
+app = FastAPI()
+
+
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    return """
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>HLEO - Ricerca Profili Clinici</title>
+</head>
+<body style="font-family:Arial;background:#f3f4f6;">
+    <div style="max-width:500px;margin:60px auto;padding:20px;background:white;border-radius:10px;">
+        <h2>HLEO - Ricerca Profili Clinici</h2>
+
+        <form action="/analizza" method="post">
+            <textarea
+                name="testo"
+                placeholder="Inserisci il nome da cercare"
+                rows="8"
+                style="width:100%;"></textarea>
+
+            <br><br>
+
+            <button
+                type="submit"
+                style="width:100%;padding:10px;">
+                Analizza
+            </button>
+        </form>
+    </div>
+</body>
+</html>"""
+
+@app.post("/analizza", response_class=HTMLResponse)
+async def analizza_testo(testo: str = Form(...)):
+    db = SessionLocal()
+
+    try:
+        query = select(ClinicalProfile)
+        risultati = db.execute(query).scalars().all()
+
+        html = """
+        <!DOCTYPE html>
+        <html lang="it">
+        <head>
+            <meta charset="UTF-8">
+            <title>Risultati HLEO</title>
+        </head>
+        <body style="font-family:Arial;background:#f3f4f6;">
+            <div style="max-width:700px;margin:60px auto;padding:20px;background:white;border-radius:10px;">
+                <h2>Risultati</h2>
+                <p><b>Testo inserito:</b> """ + testo + """</p>
+                <ul>
+        """
+
+        if risultati:
+            for p in risultati:
+                html += (
+                    f"<li>"
+                    f"ID: {p.id} | "
+                    f"Episode: {p.episode_id} | "
+                    f"Categoria: {p.final_category} | "
+                    f"Confidenza: {p.confidence_score}"
+                    f"</li>"
+                )
+        else:
+            html += "<li>Nessun record trovato.</li>"
+
+        html += """
+                </ul>
+
+                <br>
+
+                <a href="/">← Torna alla ricerca</a>
+
+            </div>
+        </body>
+        </html>
+        """
+
+        return HTMLResponse(content=html)
+
+    finally:
+        db.close()
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
