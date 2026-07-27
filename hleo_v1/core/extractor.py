@@ -3,6 +3,9 @@ import json
 from openai import OpenAI
 from core.schemas import ExtractedClinicalProfile
 import logging
+from pydantic import BaseModel
+from typing import List, Optional
+from core.clinical_schema import ClinicalProfile
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +17,7 @@ class LLMExtractor:
     def extract(self, timeline_json: str) -> ExtractedClinicalProfile:
         logger.info("Avvio estrazione LLM.")
         system_prompt = "Sei un estrattore clinico in tricologia. Estrai il profilo clinico nel formato JSON richiesto."
-        schema = ExtractedClinicalProfile.model_json_schema()
+        schema = ClinicalProfile.model_json_schema()
         
         response = self.client.chat.completions.create(
             model=self.model,
@@ -25,4 +28,4 @@ class LLMExtractor:
             response_format={"type": "json_object"},
             temperature=0.0
         )
-        return ExtractedClinicalProfile.model_validate_json(response.choices[0].message.content)
+        

@@ -7,14 +7,16 @@ from collectors.reddit import RedditCollector
 from pydantic import BaseModel
 from crawlers.crawler import ThreadCrawler
 from search.manager import SearchManager
+from core.parser import ClinicalParser
+from core.extractor import LLMExtractor
 
 app = FastAPI()
 class ThreadRequest(BaseModel):
     url: str
 
 search_manager = SearchManager()
-
-
+parser = ClinicalParser()
+extractor = LLMExtractor()
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
@@ -118,11 +120,36 @@ class ThreadRequest(BaseModel):
     
 @app.post("/crawl-thread")
 def crawl_thread(request: ThreadRequest):
+
     urls = search_manager.search(request.url)
+
+    crawler = ThreadCrawler()
+
+    results = []
+
+    for url in urls:
+
+        html = crawler.fetch(url)
+
+        if html:
+
+            text = crawler.extract_text(html)
+            parsed = extractor.extract(text)
+
+        else:
+
+            text = ""
+            parsed = {}
+        results.append({
+            "url": url,
+            "status": "ok" if html else "failed",
+            "characters": len(text),
+            "preview": text[:500],
+            "clinical_data": parsed
+        })
 
     return {
         "query": request.url,
-        "results": urls,
-        "count": len(urls)
-}
-    
+        "results": results,
+        "count": len(results)
+    }
