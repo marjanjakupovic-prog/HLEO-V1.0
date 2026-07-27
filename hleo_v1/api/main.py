@@ -1,11 +1,19 @@
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select
-
 from core.database import SessionLocal
 from core.models import ClinicalProfile
+from collectors.reddit import RedditCollector
+from pydantic import BaseModel
+from crawlers.crawler import ThreadCrawler
+from search.manager import SearchManager
 
 app = FastAPI()
+class ThreadRequest(BaseModel):
+    url: str
+
+search_manager = SearchManager()
+
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -92,7 +100,29 @@ async def analizza_testo(testo: str = Form(...)):
     finally:
         db.close()
 
-
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    collector = RedditCollector()
+
+    risultati = collector.search("dutasteride", limit=3)
+
+    return {
+        "status": "ok",
+        "reddit_posts": len(risultati)
+    }
+    from pydantic import BaseModel
+
+
+class ThreadRequest(BaseModel):
+    url: str
+    
+@app.post("/crawl-thread")
+def crawl_thread(request: ThreadRequest):
+    urls = search_manager.search(request.url)
+
+    return {
+        "query": request.url,
+        "results": urls,
+        "count": len(urls)
+}
+    
