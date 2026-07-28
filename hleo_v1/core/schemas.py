@@ -29,7 +29,7 @@ class EvidenceQuote(BaseModel):
     post_date: str
 
 class ClinicalStatus(BaseModel):
-    value: str
+    value: BaselineEnum | PostTreatmentEnum
     supporting_quotes: List[EvidenceQuote] = Field(default_factory=list)
     support_strength: float = Field(ge=0.0, le=1.0)
 
