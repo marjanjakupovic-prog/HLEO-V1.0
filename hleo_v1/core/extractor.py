@@ -30,17 +30,25 @@ class LLMExtractor:
             )
 
         from core.schemas import ExtractedClinicalProfile
-        from core.clinical_schema import ClinicalProfile
 
         system_prompt = (
-            "Sei un motore di estrazione di informazioni cliniche specializzato in tricologia.\n"
-            "Il tuo unico compito è trasformare il testo ricevuto in un oggetto JSON conforme "
-            "allo schema fornito.\n"
-            "Estrai esclusivamente informazioni esplicitamente presenti nel testo. "
-            "Non inventare dati. In caso di ambiguità usa null."
+            "You are a clinical information extraction engine.\n"
+            "Your only task is to transform the received text into a JSON object "
+            "that strictly conforms to the provided schema.\n"
+            "Rules:\n"
+            "- Extract ONLY information explicitly present in the text.\n"
+            "- Do NOT invent data or make clinical inferences.\n"
+            "- For missing values use null; for missing lists use [].\n"
+            "- episode_id: generate a short unique slug from the text (e.g. 'ep-breast-cancer-2023').\n"
+            "- user_id: use 'anonymous' if no username is present.\n"
+            "- baseline_status.value must be one of: assente, lieve, moderata, elevata, non_deducibile.\n"
+            "- post_treatment_status.value must be one of: tornata_come_prima, inferiore_a_prima, "
+            "superiore_a_prima, non_stabilizzata, non_deducibile.\n"
+            "- supporting_quotes: include verbatim excerpts from the text with their source.\n"
+            "- Return ONLY a valid JSON object matching the schema."
         )
 
-        schema = ClinicalProfile.model_json_schema()
+        schema = ExtractedClinicalProfile.model_json_schema()
 
         response = self.client.chat.completions.create(
             model=self.model,
