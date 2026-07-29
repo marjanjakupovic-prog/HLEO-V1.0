@@ -1,155 +1,63 @@
-from fastapi import FastAPI, Form
+import logging
+
+from fastapi import FastAPI, Depends
 from fastapi.responses import HTMLResponse
-from sqlalchemy import select
-from core.database import SessionLocal
-from core.models import ClinicalProfile
-from collectors.reddit import RedditCollector
-from pydantic import BaseModel
-from crawlers.crawler import ThreadCrawler
-from search.manager import SearchManager
-from core.parser import ClinicalParser
-from core.extractor import LLMExtractor
+from sqlalchemy import select, func
+from sqlalchemy.orm import Session
 
-app = FastAPI()
-class ThreadRequest(BaseModel):
-    url: str
+from core.database import get_db, engine, Base
+from core.models import ClinicalProfile, RawSource, AuditLog
 
-search_manager = SearchManager()
-parser = ClinicalParser()
-extractor = LLMExtractor()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI(title="HLEO API", version="1.0.0")
+
+# Create tables on startup
+Base.metadata.create_all(bind=engine)
+
 
 @app.get("/", response_class=HTMLResponse)
-async def home():
+async def dashboard():
     return """
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>HLEO - Ricerca Profili Clinici</title>
-</head>
-<body style="font-family:Arial;background:#f3f4f6;">
-    <div style="max-width:500px;margin:60px auto;padding:20px;background:white;border-radius:10px;">
-        <h2>HLEO - Ricerca Profili Clinici</h2>
-
-        <form action="/analizza" method="post">
-            <textarea
-                name="testo"
-                placeholder="Inserisci il nome da cercare"
-                rows="8"
-                style="width:100%;"></textarea>
-
-            <br><br>
-
-            <button
-                type="submit"
-                style="width:100%;padding:10px;">
-                Analizza
-            </button>
-        </form>
-    </div>
-</body>
-</html>"""
-
-@app.post("/analizza", response_class=HTMLResponse)
-async def analizza_testo(testo: str = Form(...)):
-    db = SessionLocal()
-
-    try:
-        query = select(ClinicalProfile)
-        risultati = db.execute(query).scalars().all()
-
-        html = """
-        <!DOCTYPE html>
-        <html lang="it">
-        <head>
-            <meta charset="UTF-8">
-            <title>Risultati HLEO</title>
-        </head>
-        <body style="font-family:Arial;background:#f3f4f6;">
-            <div style="max-width:700px;margin:60px auto;padding:20px;background:white;border-radius:10px;">
-                <h2>Risultati</h2>
-                <p><b>Testo inserito:</b> """ + testo + """</p>
-                <ul>
-        """
-
-        if risultati:
-            for p in risultati:
-                html += (
-                    f"<li>"
-                    f"ID: {p.id} | "
-                    f"Episode: {p.episode_id} | "
-                    f"Categoria: {p.final_category} | "
-                    f"Confidenza: {p.confidence_score}"
-                    f"</li>"
-                )
-        else:
-            html += "<li>Nessun record trovato.</li>"
-
-        html += """
-                </ul>
-
-                <br>
-
-                <a href="/">← Torna alla ricerca</a>
-
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>HLEO v1.0</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-100 min-h-screen flex items-center justify-center p-10">
+        <div class="max-w-lg w-full bg-white rounded-xl shadow-md p-8">
+            <h1 class="text-3xl font-bold text-blue-800 mb-2">HLEO v1.0</h1>
+            <p class="text-gray-500 mb-6">Clinical Research Pipeline</p>
+            <div class="space-y-3">
+                <a href="/health" class="block px-4 py-2 bg-blue-50 rounded-lg text-blue-700 hover:bg-blue-100">
+                    🩺 Health check
+                </a>
+                <a href="/docs" class="block px-4 py-2 bg-blue-50 rounded-lg text-blue-700 hover:bg-blue-100">
+                    📄 API documentation (Swagger UI)
+                </a>
+                <a href="/stats" class="block px-4 py-2 bg-blue-50 rounded-lg text-blue-700 hover:bg-blue-100">
+                    📊 Database stats
+                </a>
             </div>
-        </body>
-        </html>
-        """
+        </div>
+    </body>
+    </html>
+    """
 
-        return HTMLResponse(content=html)
-
-    finally:
-        db.close()
 
 @app.get("/health")
-def health():
-    collector = RedditCollector()
+def health_check():
+    return {"status": "ok", "version": "1.0.0"}
 
-    risultati = collector.search("dutasteride", limit=3)
 
+@app.get("/stats")
+def stats(db: Session = Depends(get_db)):
+    profiles_count = db.execute(select(func.count()).select_from(ClinicalProfile)).scalar()
+    sources_count = db.execute(select(func.count()).select_from(RawSource)).scalar()
     return {
-        "status": "ok",
-        "reddit_posts": len(risultati)
-    }
-    from pydantic import BaseModel
-
-
-class ThreadRequest(BaseModel):
-    url: str
-    
-@app.post("/crawl-thread")
-def crawl_thread(request: ThreadRequest):
-
-    urls = search_manager.search(request.url)
-
-    crawler = ThreadCrawler()
-
-    results = []
-
-    for url in urls:
-
-        html = crawler.fetch(url)
-
-        if html:
-
-            text = crawler.extract_text(html)
-            parsed = extractor.extract(text)
-
-        else:
-
-            text = ""
-            parsed = {}
-        results.append({
-            "url": url,
-            "status": "ok" if html else "failed",
-            "characters": len(text),
-            "preview": text[:500],
-            "clinical_data": parsed
-        })
-
-    return {
-        "query": request.url,
-        "results": results,
-        "count": len(results)
+        "clinical_profiles": profiles_count,
+        "raw_sources": sources_count,
     }

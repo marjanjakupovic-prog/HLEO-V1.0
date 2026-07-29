@@ -1,17 +1,8 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Float,
-    Boolean,
-    Text,
-    DateTime,
-    JSON,
-)
-from sqlalchemy.orm import declarative_base
 from datetime import datetime, timezone
 
-Base = declarative_base()
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, JSON, String, Text
+
+from core.database import Base
 
 
 class RawSource(Base):
