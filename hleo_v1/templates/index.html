@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HLEO — Clinical Research</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50:  '#eff6ff',
+              100: '#dbeafe',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            },
+            surface: {
+              dark:    '#0d1117',
+              card:    '#161b22',
+              border:  '#21262d',
+              hover:   '#1c2128',
+            }
+          },
+          animation: {
+            'fade-in':  'fadeIn .25s ease-out',
+            'slide-up': 'slideUp .3s ease-out',
+            'pulse-slow': 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+          },
+          keyframes: {
+            fadeIn:  { from: { opacity: 0 }, to: { opacity: 1 } },
+            slideUp: { from: { opacity: 0, transform: 'translateY(12px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+    :root { color-scheme: dark; }
+    html.light { color-scheme: light; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+    html.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+
+    /* Search glow */
+    .search-ring:focus-within {
+      box-shadow: 0 0 0 3px rgba(59,130,246,.35);
+    }
+
+    /* Badge pulse on load */
+    .count-badge { transition: all .2s; }
+
+    /* Card hover lift */
+    .result-card {
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .result-card:hover {
+      transform: translateY(-2px);
+    }
+    html.dark .result-card:hover {
+      box-shadow: 0 8px 30px rgba(0,0,0,.45);
+      border-color: #3b82f6;
+    }
+    html.light .result-card:hover {
+      box-shadow: 0 8px 30px rgba(0,0,0,.1);
+      border-color: #3b82f6;
+    }
+
+    /* Skeleton shimmer */
+    .skeleton {
+      background: linear-gradient(90deg,
+        rgba(255,255,255,.04) 25%,
+        rgba(255,255,255,.08) 50%,
+        rgba(255,255,255,.04) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+    html.light .skeleton {
+      background: linear-gradient(90deg,
+        rgba(0,0,0,.06) 25%,
+        rgba(0,0,0,.10) 50%,
+        rgba(0,0,0,.06) 75%);
+      background-size: 200% 100%;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* Source pill active */
+    .filter-btn.active {
+      background: #3b82f6;
+      color: #fff;
+      border-color: #3b82f6;
+    }
+  </style>
+</head>
+
+<body class="
+  dark:bg-surface-dark dark:text-slate-200
+  bg-slate-50          text-slate-800
+  min-h-screen transition-colors duration-300
+">
+
+<!-- ───── NAVBAR ───── -->
+<nav class="
+  sticky top-0 z-50
+  dark:bg-surface-dark/80 bg-white/80
+  dark:border-surface-border border-slate-200
+  border-b backdrop-blur-md
+">
+  <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.3 24.3 0 014.5 0m0 0v5.714a2.25 2.25 0 001.277 2.018l.637.319A3 3 0 0119.5 13.5v1.07A11.25 11.25 0 0112 17.25c-2.676 0-5.14-.934-7.07-2.48V13.5a3 3 0 012.086-2.865l.637-.319A2.25 2.25 0 009 8.818V3.104m4.5 0c.251.023.501.05.75.082M12 3v1m0 16.5v1m-4.5-5.25l-.088.088M16.5 15.25l.088.088"/>
+        </svg>
+      </div>
+      <span class="font-semibold text-sm tracking-wide dark:text-slate-100 text-slate-800">HLEO</span>
+      <span class="text-xs dark:text-slate-500 text-slate-400 hidden sm:inline">Clinical Research Pipeline</span>
+    </div>
+    <button id="themeToggle" aria-label="Toggle theme"
+      class="w-8 h-8 rounded-lg flex items-center justify-center
+             dark:hover:bg-surface-hover hover:bg-slate-100 transition-colors">
+      <!-- Moon (dark mode icon) -->
+      <svg id="iconMoon" class="w-4 h-4 dark:text-slate-400 text-slate-500 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/>
+      </svg>
+      <!-- Sun (light mode icon) -->
+      <svg id="iconSun" class="w-4 h-4 dark:hidden text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ───── HERO / SEARCH ───── -->
+<header class="max-w-5xl mx-auto px-4 pt-14 pb-10 text-center">
+  <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mb-2
+             dark:text-white text-slate-900">
+    Clinical Research Search
+  </h1>
+  <p class="dark:text-slate-400 text-slate-500 text-sm mb-8">
+    Live data from PubMed · Europe PMC · ClinicalTrials.gov · Reddit
+  </p>
+
+  <!-- Search bar -->
+  <form id="searchForm" class="max-w-2xl mx-auto">
+    <div class="search-ring flex items-center gap-2
+                dark:bg-surface-card bg-white
+                dark:border-surface-border border-slate-200
+                border rounded-xl px-4 py-3 shadow-sm">
+      <svg class="w-4 h-4 flex-shrink-0 dark:text-slate-500 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+      </svg>
+      <input
+        id="searchInput"
+        type="text"
+        placeholder="Search e.g. cancer, finasteride, BRCA1…"
+        autocomplete="off"
+        class="flex-1 bg-transparent outline-none text-sm
+               dark:text-slate-100 text-slate-800
+               dark:placeholder-slate-500 placeholder-slate-400"
+      />
+      <button type="submit"
+        class="px-4 py-1.5 bg-brand-500 hover:bg-brand-600 active:bg-brand-700
+               text-white text-sm font-medium rounded-lg transition-colors
+               flex items-center gap-1.5 flex-shrink-0">
+        <span>Search</span>
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+        </svg>
+      </button>
+    </div>
+  </form>
+</header>
+
+<!-- ───── FILTERS & RESULTS ───── -->
+<main class="max-w-5xl mx-auto px-4 pb-16">
+
+  <!-- Filter pills -->
+  <div id="filterBar" class="hidden mb-6">
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs dark:text-slate-500 text-slate-400 font-medium mr-1">Filter:</span>
+      <button class="filter-btn active" data-source="all">All <span id="count-all" class="count-badge ml-1 opacity-70"></span></button>
+      <button class="filter-btn" data-source="pubmed">PubMed <span id="count-pubmed" class="count-badge ml-1 opacity-70"></span></button>
+      <button class="filter-btn" data-source="europepmc">Europe PMC <span id="count-europepmc" class="count-badge ml-1 opacity-70"></span></button>
+      <button class="filter-btn" data-source="clinicaltrials">ClinicalTrials <span id="count-clinicaltrials" class="count-badge ml-1 opacity-70"></span></button>
+      <button class="filter-btn" data-source="reddit">Reddit <span id="count-reddit" class="count-badge ml-1 opacity-70"></span></button>
+    </div>
+  </div>
+
+  <!-- Status / error banner -->
+  <div id="statusBanner" class="hidden mb-4"></div>
+
+  <!-- Skeleton loader -->
+  <div id="skeleton" class="hidden grid gap-3">
+    <div class="skeleton rounded-xl h-28"></div>
+    <div class="skeleton rounded-xl h-24"></div>
+    <div class="skeleton rounded-xl h-32"></div>
+    <div class="skeleton rounded-xl h-24"></div>
+    <div class="skeleton rounded-xl h-28"></div>
+  </div>
+
+  <!-- Results grid -->
+  <div id="results" class="grid gap-3 animate-fade-in"></div>
+
+  <!-- Empty state -->
+  <div id="empty" class="hidden text-center py-20">
+    <div class="w-14 h-14 rounded-full dark:bg-surface-card bg-slate-100 mx-auto flex items-center justify-center mb-4">
+      <svg class="w-7 h-7 dark:text-slate-600 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
+      </svg>
+    </div>
+    <p class="dark:text-slate-500 text-slate-400 text-sm">No results found for this query.</p>
+  </div>
+
+</main>
+
+<style>
+  .filter-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: .3rem .75rem;
+    font-size: .75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  html.dark .filter-btn {
+    border-color: #30363d;
+    color: #8b949e;
+    background: transparent;
+  }
+  html.dark .filter-btn:hover:not(.active) {
+    background: #21262d;
+    color: #e6edf3;
+  }
+  html.light .filter-btn {
+    border-color: #e2e8f0;
+    color: #64748b;
+    background: transparent;
+  }
+  html.light .filter-btn:hover:not(.active) {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+</style>
+
+<script>
+  // ── Theme ──────────────────────────────────────────────────────
+  const html = document.documentElement;
+  const stored = localStorage.getItem('hleo-theme');
+  if (stored === 'light') html.classList.replace('dark', 'light');
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const isDark = html.classList.contains('dark');
+    html.classList.replace(isDark ? 'dark' : 'light', isDark ? 'light' : 'dark');
+    localStorage.setItem('hleo-theme', isDark ? 'light' : 'dark');
+  });
+
+  // ── State ──────────────────────────────────────────────────────
+  let allResults = [];
+  let activeFilter = 'all';
+
+  // ── Source meta ────────────────────────────────────────────────
+  const SOURCE_META = {
+    pubmed:        { label: 'PubMed',          color: 'blue'  },
+    europepmc:     { label: 'Europe PMC',       color: 'violet'},
+    clinicaltrials:{ label: 'ClinicalTrials',   color: 'emerald'},
+    reddit:        { label: 'Reddit',           color: 'orange'},
+  };
+
+  const BADGE = {
+    blue:    'bg-blue-500/15 text-blue-400 ring-blue-500/20',
+    violet:  'bg-violet-500/15 text-violet-400 ring-violet-500/20',
+    emerald: 'bg-emerald-500/15 text-emerald-400 ring-emerald-500/20',
+    orange:  'bg-orange-500/15 text-orange-400 ring-orange-500/20',
+  };
+  const BADGE_LIGHT = {
+    blue:    'bg-blue-50 text-blue-700 ring-blue-200',
+    violet:  'bg-violet-50 text-violet-700 ring-violet-200',
+    emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+    orange:  'bg-orange-50 text-orange-700 ring-orange-200',
+  };
+
+  function badgeClass(color) {
+    const isDark = html.classList.contains('dark');
+    return `inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${isDark ? BADGE[color] : BADGE_LIGHT[color]}`;
+  }
+
+  // ── Status badge for trial status ──────────────────────────────
+  const TRIAL_STATUS = {
+    RECRUITING:            'bg-green-500/15 text-green-400',
+    COMPLETED:             'bg-slate-500/15 text-slate-400',
+    TERMINATED:            'bg-red-500/15 text-red-400',
+    SUSPENDED:             'bg-yellow-500/15 text-yellow-400',
+    NOT_YET_RECRUITING:    'bg-blue-500/15 text-blue-400',
+  };
+
+  // ── Helpers ────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function authorLine(authors) {
+    if (!authors?.length) return '';
+    const shown = authors.slice(0, 4);
+    const extra = authors.length - shown.length;
+    return shown.join(', ') + (extra > 0 ? ` +${extra} more` : '');
+  }
+
+  // ── Card builders ──────────────────────────────────────────────
+  function cardWrap(inner, source) {
+    const meta = SOURCE_META[source];
+    return `
+    <article class="result-card rounded-xl border
+      dark:bg-surface-card dark:border-surface-border
+      bg-white border-slate-200
+      p-5 animate-slide-up"
+      data-source="${source}">
+      <div class="flex items-start justify-between gap-3 mb-3">
+        <span class="${badgeClass(meta.color)}">${meta.label}</span>
+      </div>
+      ${inner}
+    </article>`;
+  }
+
+  function buildPubMedCard(r) {
+    const authors = authorLine(r.authors);
+    const journal = r.metadata?.journal ?? '';
+    const date    = r.metadata?.pubdate ?? '';
+    const pmid    = r.pmid ?? '';
+    const href    = pmid ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` : null;
+
+    return cardWrap(`
+      <h3 class="text-sm font-semibold dark:text-slate-100 text-slate-800 leading-snug mb-1.5">
+        ${href
+          ? `<a href="${escHtml(href)}" target="_blank" rel="noopener"
+               class="hover:text-brand-400 transition-colors">${escHtml(r.title)}</a>`
+          : escHtml(r.title)}
+      </h3>
+      ${authors ? `<p class="text-xs dark:text-slate-500 text-slate-400 mb-1">${escHtml(authors)}</p>` : ''}
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs dark:text-slate-500 text-slate-400">
+        ${journal ? `<span class="italic">${escHtml(journal)}</span>` : ''}
+        ${date    ? `<span>${escHtml(date)}</span>` : ''}
+        ${pmid    ? `<span class="font-mono opacity-60">PMID ${escHtml(pmid)}</span>` : ''}
+      </div>
+    `, 'pubmed');
+  }
+
+  function buildEuropeCard(r) {
+    const journal = r.metadata?.journal ?? '';
+    const doi     = r.doi ?? '';
+    const year    = r.year ?? '';
+    const href    = doi ? `https://doi.org/${doi}` : null;
+
+    return cardWrap(`
+      <h3 class="text-sm font-semibold dark:text-slate-100 text-slate-800 leading-snug mb-1.5">
+        ${href
+          ? `<a href="${escHtml(href)}" target="_blank" rel="noopener"
+               class="hover:text-violet-400 transition-colors">${escHtml(r.title)}</a>`
+          : escHtml(r.title)}
+      </h3>
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs dark:text-slate-500 text-slate-400">
+        ${journal ? `<span class="italic">${escHtml(journal)}</span>` : ''}
+        ${year    ? `<span>${escHtml(year)}</span>` : ''}
+        ${doi     ? `<span class="font-mono opacity-60">DOI ${escHtml(doi)}</span>` : ''}
+      </div>
+    `, 'europepmc');
+  }
+
+  function buildTrialCard(r) {
+    const nct    = r.metadata?.nct_id   ?? '';
+    const status = r.metadata?.status   ?? '';
+    const conds  = r.metadata?.condition ?? [];
+    const href   = nct ? `https://clinicaltrials.gov/study/${nct}` : null;
+    const sc     = TRIAL_STATUS[status] ?? 'bg-slate-500/15 text-slate-400';
+
+    return cardWrap(`
+      <h3 class="text-sm font-semibold dark:text-slate-100 text-slate-800 leading-snug mb-2">
+        ${href
+          ? `<a href="${escHtml(href)}" target="_blank" rel="noopener"
+               class="hover:text-emerald-400 transition-colors">${escHtml(r.title)}</a>`
+          : escHtml(r.title)}
+      </h3>
+      <div class="flex flex-wrap gap-2 mt-2">
+        ${status ? `<span class="text-xs px-2 py-0.5 rounded-full font-medium ${sc}">${escHtml(status.replace(/_/g,' '))}</span>` : ''}
+        ${conds.slice(0,3).map(c => `<span class="text-xs dark:text-slate-400 text-slate-500 dark:bg-surface-border bg-slate-100 px-2 py-0.5 rounded-full">${escHtml(c)}</span>`).join('')}
+        ${nct ? `<span class="text-xs font-mono dark:text-slate-500 text-slate-400">${escHtml(nct)}</span>` : ''}
+      </div>
+    `, 'clinicaltrials');
+  }
+
+  function buildRedditCard(r) {
+    const href = r.url ?? null;
+    return cardWrap(`
+      <h3 class="text-sm font-semibold dark:text-slate-100 text-slate-800 leading-snug mb-1.5">
+        ${href
+          ? `<a href="${escHtml(href)}" target="_blank" rel="noopener"
+               class="hover:text-orange-400 transition-colors">${escHtml(r.title)}</a>`
+          : escHtml(r.title)}
+      </h3>
+      ${r.text ? `<p class="text-xs dark:text-slate-400 text-slate-500 line-clamp-2 mt-1">${escHtml(r.text.slice(0,200))}</p>` : ''}
+      <div class="flex gap-3 mt-2 text-xs dark:text-slate-500 text-slate-400">
+        ${r.author ? `<span>u/${escHtml(r.author)}</span>` : ''}
+      </div>
+    `, 'reddit');
+  }
+
+  function buildCard(item) {
+    if (item.type === 'pubmed')         return buildPubMedCard(item.article ?? item);
+    if (item.type === 'europepmc')      return buildEuropeCard(item.article ?? item);
+    if (item.type === 'clinicaltrials') return buildTrialCard(item.trial    ?? item);
+    if (item.type === 'reddit')         return buildRedditCard(item.post    ?? item);
+    return '';
+  }
+
+  // ── Normalise flat API response → [{type, …}] ─────────────────
+  function normaliseResponse(data) {
+    const out = [];
+    (data.pubmed         ?? []).forEach(a => out.push({ type:'pubmed',          article: a }));
+    (data.europepmc      ?? []).forEach(a => out.push({ type:'europepmc',       article: a }));
+    (data.clinicaltrials ?? []).forEach(t => out.push({ type:'clinicaltrials',  trial:   t }));
+    (data.reddit         ?? []).forEach(p => out.push({ type:'reddit',          post:    p }));
+    return out;
+  }
+
+  // ── Render ─────────────────────────────────────────────────────
+  function renderResults(filter) {
+    const container = document.getElementById('results');
+    const empty     = document.getElementById('empty');
+    const filtered  = filter === 'all' ? allResults : allResults.filter(r => r.type === filter);
+
+    if (!filtered.length) {
+      container.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+    container.innerHTML = filtered.map(buildCard).join('');
+  }
+
+  function updateCounts(totals) {
+    const all = Object.values(totals).reduce((s,v) => s+v, 0);
+    document.getElementById('count-all').textContent          = all;
+    document.getElementById('count-pubmed').textContent       = totals.pubmed          ?? 0;
+    document.getElementById('count-europepmc').textContent    = totals.europepmc       ?? 0;
+    document.getElementById('count-clinicaltrials').textContent = totals.clinicaltrials ?? 0;
+    document.getElementById('count-reddit').textContent       = totals.reddit          ?? 0;
+  }
+
+  // ── Filters ────────────────────────────────────────────────────
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.source;
+      renderResults(activeFilter);
+    });
+  });
+
+  // ── Search ─────────────────────────────────────────────────────
+  function showSkeleton(on) {
+    document.getElementById('skeleton').classList.toggle('hidden', !on);
+    document.getElementById('results').classList.toggle('hidden',  on);
+  }
+
+  function showBanner(msg, type='error') {
+    const b = document.getElementById('statusBanner');
+    const cls = type === 'error'
+      ? 'dark:bg-red-900/30 bg-red-50 dark:border-red-800 border-red-200 dark:text-red-300 text-red-700'
+      : 'dark:bg-yellow-900/20 bg-yellow-50 dark:border-yellow-800 border-yellow-200 dark:text-yellow-300 text-yellow-700';
+    b.className = `${cls} border rounded-xl px-4 py-3 text-sm mb-4`;
+    b.textContent = msg;
+    b.classList.remove('hidden');
+  }
+
+  document.getElementById('searchForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) return;
+
+    // Reset UI
+    document.getElementById('statusBanner').classList.add('hidden');
+    document.getElementById('empty').classList.add('hidden');
+    document.getElementById('filterBar').classList.remove('hidden');
+    document.getElementById('results').innerHTML = '';
+    activeFilter = 'all';
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.source === 'all');
+    });
+
+    showSkeleton(true);
+
+    try {
+      const res  = await fetch(`/search?q=${encodeURIComponent(q)}`);
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+
+      allResults = normaliseResponse(data);
+      updateCounts(data.totals ?? {});
+
+      if (!data.llm_extraction) {
+        showBanner('ℹ️  LLM extraction is disabled (OPENAI_API_KEY not set). Reddit posts are collected but not analysed.', 'warn');
+      }
+
+      showSkeleton(false);
+      renderResults('all');
+
+    } catch (err) {
+      showSkeleton(false);
+      showBanner(`Error: ${err.message}`);
+    }
+  });
+
+  // Auto-search if ?q= is in URL
+  const urlQ = new URLSearchParams(location.search).get('q');
+  if (urlQ) {
+    document.getElementById('searchInput').value = urlQ;
+    document.getElementById('searchForm').dispatchEvent(new Event('submit'));
+  }
+</script>
+</body>
+</html>
