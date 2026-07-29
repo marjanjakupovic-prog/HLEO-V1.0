@@ -2,67 +2,50 @@ import os
 import json
 import logging
 
-from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
-
-from core.schemas import ExtractedClinicalProfile
-from core.clinical_schema import ClinicalProfile
 
 logger = logging.getLogger(__name__)
 
 
 class LLMExtractor:
     def __init__(self) -> None:
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.model = "gpt-4o"
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key:
+            from openai import OpenAI
+            self.client = OpenAI(api_key=api_key)
+        else:
+            logger.warning(
+                "OPENAI_API_KEY not set — LLM extraction disabled. "
+                "Reddit posts will be skipped."
+            )
+            self.client = None
 
-    def extract(self, timeline_json: str) -> ExtractedClinicalProfile:
-        logger.info("Avvio estrazione LLM.")
+    def extract(self, timeline_json: str):
+        if self.client is None:
+            raise RuntimeError(
+                "OPENAI_API_KEY is not set. Cannot perform LLM extraction."
+            )
 
-        system_prompt = """
-Sei un motore di estrazione di informazioni cliniche specializzato in tricologia.
+        from core.schemas import ExtractedClinicalProfile
+        from core.clinical_schema import ClinicalProfile
 
-Il tuo unico compito è trasformare il testo ricevuto in un oggetto JSON conforme allo schema fornito.
-
-REGOLE OBBLIGATORIE
-
-- Estrai esclusivamente informazioni esplicitamente presenti nel testo.
-- Non inventare dati.
-- Non fare inferenze cliniche.
-- Non completare campi mancanti.
-- Non interpretare ciò che non è scritto.
-- Non correggere diagnosi, farmaci, dosaggi o date.
-- Mantieni la terminologia originale quando possibile.
-
-GESTIONE DEI DATI MANCANTI
-
-- Se un valore non è presente, usa null.
-- Se una lista è assente, restituisci [].
-- Non inserire valori di default.
-- Non creare informazioni plausibili.
-
-QUALITÀ
-
-- Ogni campo deve poter essere ricondotto al testo sorgente.
-- In caso di ambiguità, preferisci null invece di indovinare.
-- Non aggiungere spiegazioni, commenti o testo libero.
-
-OUTPUT
-
-Restituisci esclusivamente un JSON valido che rispetti rigorosamente lo schema fornito.
-"""
+        system_prompt = (
+            "Sei un motore di estrazione di informazioni cliniche specializzato in tricologia.\n"
+            "Il tuo unico compito è trasformare il testo ricevuto in un oggetto JSON conforme "
+            "allo schema fornito.\n"
+            "Estrai esclusivamente informazioni esplicitamente presenti nel testo. "
+            "Non inventare dati. In caso di ambiguità usa null."
+        )
 
         schema = ClinicalProfile.model_json_schema()
 
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {
-                    "role": "system",
-                    "content": system_prompt,
-                },
+                {"role": "system", "content": system_prompt},
                 {
                     "role": "user",
                     "content": (
@@ -76,9 +59,7 @@ Restituisci esclusivamente un JSON valido che rispetti rigorosamente lo schema f
         )
 
         content = response.choices[0].message.content
-
-        logger.info("Estrazione completata.")
-
         data = json.loads(content)
 
+        from core.schemas import ExtractedClinicalProfile
         return ExtractedClinicalProfile.model_validate(data)

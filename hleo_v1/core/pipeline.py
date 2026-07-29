@@ -1,3 +1,5 @@
+import logging
+
 from collectors.reddit import RedditCollector
 from collectors.pubmed import PubMedCollector
 from collectors.europepmc import EuropePMCCollector
@@ -6,9 +8,6 @@ from core.extractor import LLMExtractor
 from core.validator import HLEOValidator
 from core.judge import HLEOJudge
 from search.source_fetcher import SourceFetcher
-
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -25,20 +24,22 @@ class HLEOPipeline:
         self.judge = HLEOJudge()
         self.fetcher = SourceFetcher()
 
-    def collect(self, query: str):
-    reddit_posts = self.collector.search(query, limit=10)
-    pubmed_articles = self.pubmed.search(query, limit=3)
-    europepmc_articles = self.europepmc.search(query, limit=3)
-    clinical_trials = self.clinicaltrials.search(query, limit=3)
+    def collect(self, query: str) -> dict:
+        """Collect raw data from all sources. No LLM required."""
+        reddit_posts = self.collector.search(query, limit=10)
+        pubmed_articles = self.pubmed.search(query, limit=3)
+        europepmc_articles = self.europepmc.search(query, limit=3)
+        clinical_trials = self.clinicaltrials.search(query, limit=3)
 
-    return {
-        "reddit": reddit_posts,
-        "pubmed": pubmed_articles,
-        "europepmc": europepmc_articles,
-        "clinicaltrials": clinical_trials,
-    }
+        return {
+            "reddit": reddit_posts,
+            "pubmed": pubmed_articles,
+            "europepmc": europepmc_articles,
+            "clinicaltrials": clinical_trials,
+        }
 
-    def process(self, query: str):
+    def process(self, query: str) -> list:
+        """Full pipeline: collect → LLM extract → validate → judge."""
         logger.info("Pipeline avviata")
 
         data = self.collect(query)
@@ -51,40 +52,29 @@ class HLEOPipeline:
         logger.info(f"Post Reddit: {len(posts)}")
         logger.info(f"Articoli PubMed: {len(articles)}")
 
-    if (
-        not posts
-        and not articles
-        and not europe_articles
-        and not clinical_trials
-    ):
-    logger.warning("Nessun dato trovato")
-    return []
+        if (
+            not posts
+            and not articles
+            and not europe_articles
+            and not clinical_trials
+        ):
+            logger.warning("Nessun dato trovato")
+            return []
 
         results = []
 
-        # Salva gli articoli PubMed
         for article in articles:
-            results.append({
-                "type": "pubmed",
-                "article": article,
-            })
+            results.append({"type": "pubmed", "article": article})
 
         for article in europe_articles:
-            results.append({
-            "type": "europepmc",
-            "article": article,
-            })
+            results.append({"type": "europepmc", "article": article})
 
         for trial in clinical_trials:
-            results.append({
-            "type": "clinicaltrials",
-            "trial": trial,
-            })
-        # Elabora i post Reddit
+            results.append({"type": "clinicaltrials", "trial": trial})
+
         for post in posts:
             try:
                 raw_sources = self.fetcher.fetch(post.url)
-
                 profile = self.extractor.extract(post.text)
                 logger.info("Estrazione completata")
 
@@ -114,8 +104,6 @@ class HLEOPipeline:
                 })
 
             except Exception as e:
-                logger.exception(
-                    f"Errore durante l'elaborazione del post {post.url}: {e}"
-                )
+                logger.exception(f"Errore elaborazione post {post.url}: {e}")
 
         return results
