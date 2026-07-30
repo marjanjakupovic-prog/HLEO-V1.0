@@ -1,5 +1,6 @@
 import logging
 
+from aggregator import HLEOAggregator
 from collectors.reddit import RedditCollector
 from collectors.pubmed import PubMedCollector
 from collectors.europepmc import EuropePMCCollector
@@ -10,6 +11,8 @@ from core.judge import HLEOJudge
 from search.source_fetcher import SourceFetcher
 
 logger = logging.getLogger(__name__)
+
+_aggregator = HLEOAggregator()
 
 
 class HLEOPipeline:
@@ -25,18 +28,48 @@ class HLEOPipeline:
         self.fetcher = SourceFetcher()
 
     def collect(self, query: str) -> dict:
-        """Collect raw data from all sources. No LLM required."""
-        reddit_posts = self.collector.search(query, limit=10)
-        pubmed_articles = self.pubmed.search(query, limit=3)
-        europepmc_articles = self.europepmc.search(query, limit=3)
-        clinical_trials = self.clinicaltrials.search(query, limit=3)
+        """
+        Collect raw data from all sources and deduplicate across sources.
 
-        return {
-            "reddit": reddit_posts,
-            "pubmed": pubmed_articles,
-            "europepmc": europepmc_articles,
+        Flow
+        ----
+        1. Fetch from PubMed, Europe PMC, ClinicalTrials.gov, Reddit in parallel.
+        2. Run HLEOAggregator.deduplicate_across_sources() over the three
+           scientific lists (Reddit is never touched).
+        3. Log Retrieved / Duplicates removed / Final unique papers.
+        4. Return the cleaned per-source dict — identical structure to before,
+           but with cross-source duplicates removed (winning copy only retained).
+        """
+        reddit_posts       = self.collector.search(query, limit=10)
+        pubmed_articles    = self.pubmed.search(query, limit=3)
+        europepmc_articles = self.europepmc.search(query, limit=3)
+        clinical_trials    = self.clinicaltrials.search(query, limit=3)
+
+        raw = {
+            "reddit":         reddit_posts,
+            "pubmed":         pubmed_articles,
+            "europepmc":      europepmc_articles,
             "clinicaltrials": clinical_trials,
         }
+
+        # ── Cross-source deduplication ────────────────────────────────────────
+        deduped, stats = _aggregator.deduplicate_across_sources(raw)
+
+        logger.info(
+            "Dedup | Retrieved: %d | Duplicates removed: %d | Final unique papers: %d",
+            stats["retrieved"],
+            stats["removed"],
+            stats["unique"],
+        )
+
+        if stats["removed"] > 0:
+            for key, loser_src, winner_src in stats["duplicate_keys"]:
+                logger.info(
+                    "  dup removed: [%s] kept from %s, dropped from %s",
+                    key, winner_src, loser_src,
+                )
+
+        return deduped
 
     def process(self, query: str) -> list:
         """Full pipeline: collect → LLM extract → validate → judge."""
