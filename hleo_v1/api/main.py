@@ -512,10 +512,30 @@ def list_experiences(
 
 # ── AI Clinical Assistant ─────────────────────────────────────────────────────
 
+from typing import List
+
+class SearchArticleCtx(BaseModel):
+    """One article from the active search, sent by the frontend."""
+    source: str                     # "pubmed" | "europepmc" | "clinicaltrials"
+    title: str
+    abstract: Optional[str] = ""
+    url: Optional[str] = ""
+
+class SearchContext(BaseModel):
+    """
+    Active search context forwarded by the frontend with every chat message.
+    Populated by the orchestrator output + raw collector results.
+    """
+    original_query: str
+    search_query: str               # English query actually sent to collectors
+    detected_language: str          # ISO-639-1 code from orchestrator
+    articles: List[SearchArticleCtx] = []
+
 class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     message: str
-    language: Optional[str] = "en"   # ISO 639-1 code, e.g. "en" / "it"
+    language: Optional[str] = "en"         # ISO 639-1 code, e.g. "en" / "it"
+    search_context: Optional[SearchContext] = None   # Feature 002: active search
 
 
 @app.post("/assistant/chat")
@@ -625,37 +645,104 @@ def assistant_chat(
                 break
 
     # ── Build system prompt ─────────────────────────────────────────
-    context_block = (
-        "\n\n".join(context_snippets)
-        if context_snippets
-        else "No relevant records found in the database for this query."
-    )
 
     _LANG_MAP = {
         "it": "Italian", "en": "English", "fr": "French",
         "de": "German",  "es": "Spanish", "pt": "Portuguese",
     }
-    _resp_lang  = _LANG_MAP.get(body.language or "en", "English")
-    _lang_note  = (
+    _resp_lang = _LANG_MAP.get(body.language or "en", "English")
+    _lang_note = (
         f"\n\nIMPORTANT: You must respond entirely in {_resp_lang}. "
         f"All your answers, labels, and explanations must be written in {_resp_lang}."
         if _resp_lang != "English" else ""
     )
 
+    # ── Priority 1: current search context (Feature 002) ───────────────
+    search_block = ""
+    has_search_articles = False
+    sc = body.search_context
+
+    if sc and sc.articles:
+        has_search_articles = True
+        lang_note_query = (
+            f" (original query in {sc.detected_language.upper()}: '{sc.original_query}',"
+            f" translated to: '{sc.search_query}')"
+            if sc.original_query.lower() != sc.search_query.lower()
+            else f" (query: '{sc.original_query}')"
+        )
+        art_lines = []
+        for i, art in enumerate(sc.articles, 1):
+            src_label = {"pubmed": "PubMed", "europepmc": "Europe PMC",
+                         "clinicaltrials": "ClinicalTrials.gov"}.get(art.source, art.source)
+            abstract_excerpt = (art.abstract or "").strip()
+            url_part = f"\n     URL: {art.url}" if art.url else ""
+            art_lines.append(
+                f"  [{i}] [{src_label}] {art.title}\n"
+                f"      Abstract: {abstract_excerpt or 'N/A'}"
+                f"{url_part}"
+            )
+        search_block = (
+            f"══ PRIORITY 1 — CURRENT SEARCH RESULTS{lang_note_query} ══\n"
+            f"{len(sc.articles)} article(s) retrieved:\n\n"
+            + "\n\n".join(art_lines)
+            + "\n\n"
+            "INSTRUCTION: Base your answer primarily on these articles. "
+            "When referencing them, use phrases such as:\n"
+            "  • 'Nei risultati della tua ricerca...' / 'In the search results...'\n"
+            "  • 'In base agli studi recuperati...' / 'Based on the retrieved studies...'\n"
+            "  • 'Ho analizzato gli articoli trovati nella ricerca corrente...'\n"
+            "NEVER open with 'In general...', 'Generally...', or 'Normalmente...' "
+            "when these search results are available.\n"
+            "══════════════════════════════════════════\n"
+        )
+    elif sc:
+        # Search was performed but returned no articles
+        search_block = (
+            f"══ PRIORITY 1 — CURRENT SEARCH: no articles retrieved "
+            f"(query: '{sc.original_query}') ══\n"
+            "If you must rely on general knowledge, state explicitly:\n"
+            "  'La ricerca corrente non ha restituito evidenze sufficienti. "
+            "La seguente risposta è basata su conoscenze mediche generali.'\n"
+            "══════════════════════════════════════════\n"
+        )
+
+    # ── Priority 2: HLEO database (RAG) ────────────────────────────────
+    db_block = (
+        "\n\n".join(context_snippets)
+        if context_snippets
+        else "No matching records in the HLEO database for this query."
+    )
+    db_header = (
+        f"══ PRIORITY 2 — HLEO DATABASE ({len(context_snippets)} records) ══\n"
+        f"{db_block}\n"
+        "══════════════════════════════════════════"
+    )
+
+    # ── Priority 3: general knowledge note ─────────────────────────────
+    p3_note = (
+        "══ PRIORITY 3 — GENERAL KNOWLEDGE ══\n"
+        "Use general medical knowledge ONLY if neither the current search results "
+        "nor the HLEO database contain sufficient information. "
+        "When doing so, explicitly state that the answer is based on general knowledge.\n"
+        "══════════════════════════════════════════"
+    )
+
     system_prompt = (
-        "You are HLEO Clinical Assistant, an AI that helps clinicians and researchers "
-        "understand evidence from scientific literature and patient-reported experiences.\n\n"
-        "You have access to a curated database of extracted clinical profiles and patient "
-        "experiences. You answer questions based ONLY on information in the provided context "
-        "and general medical knowledge. You always:\n"
-        "- Cite the source type (e.g. PubMed article, patient experience) when referencing data.\n"
+        "You are HLEO Clinical Assistant, an AI research assistant for clinicians and "
+        "researchers. You help interpret evidence from scientific literature and "
+        "patient-reported experiences.\n\n"
+        "You ALWAYS follow this strict source priority order:\n"
+        "  1. CURRENT SEARCH RESULTS — articles just retrieved for the user's query\n"
+        "  2. HLEO DATABASE — stored clinical profiles and patient experiences\n"
+        "  3. GENERAL KNOWLEDGE — only when (1) and (2) are insufficient\n\n"
+        "You always:\n"
+        "- Cite the source (e.g. '[PubMed]', '[Europe PMC]', '[HLEO DB]') when referencing data.\n"
         "- Acknowledge uncertainty; never overstate evidence.\n"
         "- Recommend consulting a qualified clinician for personal medical decisions.\n"
-        "- Are concise (3-6 sentences unless detail is specifically requested).\n\n"
-        f"RETRIEVED CONTEXT ({len(context_snippets)} records):\n"
-        "─────────────────────────────────────\n"
-        f"{context_block}\n"
-        "─────────────────────────────────────"
+        "- Are concise (3–6 sentences unless detail is specifically requested).\n\n"
+        f"{search_block}"
+        f"{db_header}\n\n"
+        f"{p3_note}"
         f"{_lang_note}"
     )
 

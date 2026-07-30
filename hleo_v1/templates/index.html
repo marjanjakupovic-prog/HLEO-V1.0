@@ -1105,6 +1105,8 @@ function showBanner(id, msg, type='error') {
 let allSearchResults = [];
 let activeFilter = 'all';
 let lastQuery = '';
+// Feature 002: holds the active search context forwarded to the AI assistant
+let _activeSearchCtx = null;
 
 function normResults(data) {
   const out = [];
@@ -1189,6 +1191,29 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
     if (!res.ok) throw new Error(`Server error ${res.status}`);
     const data = await res.json();
     allSearchResults = normResults(data);
+
+    // Feature 002: capture search context for the AI assistant
+    const _orch = data.orchestration || {};
+    _activeSearchCtx = {
+      original_query:    q,
+      search_query:      _orch.search_query      || q,
+      detected_language: _orch.detected_language || 'en',
+      articles: allSearchResults
+        .filter(item => item.type !== 'reddit')
+        .map(item => ({
+          source:   item.type,
+          title:    item.data.title  || '',
+          abstract: (item.data.abstract || '').slice(0, 600),
+          url:      item.data.pmid
+            ? `https://pubmed.ncbi.nlm.nih.gov/${item.data.pmid}/`
+            : item.data.doi
+              ? `https://doi.org/${item.data.doi}`
+              : item.data.metadata?.nct_id
+                ? `https://clinicaltrials.gov/study/${item.data.metadata.nct_id}`
+                : '',
+        })),
+    };
+
     const t = data.totals||{};
     const total = Object.values(t).reduce((s,v)=>s+v,0);
     document.getElementById('cnt-all').textContent          = total;
@@ -1748,7 +1773,12 @@ async function sendMessage(text) {
     const res  = await fetch('/assistant/chat', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({session_id: currentSessionId, message: text, language: currentLang}),
+      body: JSON.stringify({
+        session_id:     currentSessionId,
+        message:        text,
+        language:       currentLang,
+        search_context: _activeSearchCtx,   // Feature 002: active search context
+      }),
     });
     document.getElementById('typingIndicator')?.remove();
     if (!res.ok) throw new Error(`Server error ${res.status}`);
