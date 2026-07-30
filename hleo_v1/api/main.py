@@ -801,41 +801,58 @@ def assistant_chat(
         )
 
     # ── Priority 2: HLEO database (RAG) ────────────────────────────────
-    db_block = (
-        "\n\n".join(context_snippets)
-        if context_snippets
-        else "No matching records in the HLEO database for this query."
-    )
-    db_header = (
-        f"══ PRIORITY 2 — HLEO DATABASE ({len(context_snippets)} records) ══\n"
-        f"{db_block}\n"
-        "══════════════════════════════════════════"
-    )
+    # When current search articles are present they are the SOLE primary source.
+    # The DB is suppressed to a gap-fill note so it cannot contaminate the
+    # Clinical Conclusion, Evidence Summary, or Key Studies sections.
+    if has_search_articles:
+        # Suppress DB content entirely; only allow it as an explicit gap-fill
+        db_header = (
+            f"══ PRIORITY 2 — HLEO DATABASE (suppressed — {len(context_snippets)} records available) ══\n"
+            "HLEO DB records are SUPPRESSED because current search articles are present.\n"
+            "DO NOT use HLEO DB data in Clinical Conclusion, Evidence Summary, or Key Studies.\n"
+            "You MAY reference HLEO DB only inside the 'General Medical Knowledge' section "
+            "and ONLY if the search articles above leave a clinically important unanswered gap. "
+            "Label any such reference explicitly as '[HLEO DB]'.\n"
+            "══════════════════════════════════════════"
+        )
+    else:
+        db_block = (
+            "\n\n".join(context_snippets)
+            if context_snippets
+            else "No matching records in the HLEO database for this query."
+        )
+        db_header = (
+            f"══ PRIORITY 2 — HLEO DATABASE ({len(context_snippets)} records) ══\n"
+            f"{db_block}\n"
+            "══════════════════════════════════════════"
+        )
 
     # ── Priority 3: general knowledge note ─────────────────────────────
     p3_note = (
         "══ PRIORITY 3 — GENERAL KNOWLEDGE ══\n"
         "Use general medical knowledge ONLY if neither the current search results "
-        "nor the HLEO database contain sufficient information. "
+        "nor the HLEO database contain sufficient information to answer the question. "
         "When doing so, explicitly state that the answer is based on general knowledge.\n"
         "══════════════════════════════════════════"
     )
 
     system_prompt = (
         "You are HLEO Clinical Assistant, an AI research assistant for clinicians and "
-        "researchers. You help interpret evidence from scientific literature and "
-        "patient-reported experiences.\n\n"
-        "You ALWAYS follow this strict source priority order:\n"
-        "  1. CURRENT SEARCH RESULTS — articles just retrieved for the user's query\n"
-        "  2. HLEO DATABASE — stored clinical profiles and patient experiences\n"
-        "  3. GENERAL KNOWLEDGE — only when (1) and (2) are insufficient\n\n"
+        "researchers. You synthesize scientific evidence and communicate clinical conclusions.\n\n"
+        "SOURCE PRIORITY — strictly enforced:\n"
+        "  1. CURRENT SEARCH RESULTS — the retrieved scientific articles are the ONLY valid "
+        "primary source when present. Build every primary section exclusively from these.\n"
+        "  2. HLEO DATABASE — supplementary only; never used as primary evidence when search "
+        "articles are available.\n"
+        "  3. GENERAL KNOWLEDGE — only when (1) and (2) are both insufficient.\n\n"
         "You always:\n"
-        "- Cite the source (e.g. '[PubMed]', '[Europe PMC]', '[HLEO DB]') when referencing data.\n"
-        "- Acknowledge uncertainty; never overstate evidence.\n"
+        "- Cite sources inline (e.g. '[PubMed]', '[Europe PMC]', '[HLEO DB]').\n"
+        "- Acknowledge uncertainty; never overstate evidence strength.\n"
         "- Recommend consulting a qualified clinician for personal medical decisions.\n"
-        "- When search results are present, follow the RESPONSE STRATEGY defined in Priority 1: "
-        "answer the question directly first, then provide evidence and clinical interpretation.\n"
-        "- When no search results are present, answer concisely (3–6 sentences) and directly.\n\n"
+        "- When search results are present, follow the CLINICAL REASONING ENGINE in Priority 1 "
+        "exactly — synthesis and clinical judgment first, individual studies last.\n"
+        "- When no search results are present, answer concisely (3–6 sentences) using "
+        "HLEO DB then general knowledge.\n\n"
         f"{search_block}"
         f"{db_header}\n\n"
         f"{p3_note}"
