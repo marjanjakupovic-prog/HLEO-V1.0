@@ -64,6 +64,45 @@
     html.dark  .bubble-asst { background:#161b22; color:#e6edf3; border:1px solid #21262d; border-radius:1rem 1rem 1rem .25rem; }
     html.light .bubble-asst { background:#f8fafc; color:#1e293b; border:1px solid #e2e8f0; border-radius:1rem 1rem 1rem .25rem; }
     .profile-label { font-size:.65rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+    /* Clinical profile card sections */
+    .cp-section { padding:.75rem 0; }
+    .cp-section + .cp-section { border-top:1px solid; }
+    html.dark  .cp-section + .cp-section { border-color:#21262d; }
+    html.light .cp-section + .cp-section { border-color:#f1f5f9; }
+    .cp-section-label { display:flex; align-items:center; gap:.35rem; font-size:.68rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; margin-bottom:.5rem; }
+    html.dark  .cp-section-label { color:#4b5563; }
+    html.light .cp-section-label { color:#94a3b8; }
+    /* Tag chips for clinical fields */
+    .cp-chip { display:inline-flex; align-items:center; padding:.2rem .6rem; border-radius:.375rem; font-size:.72rem; font-weight:500; line-height:1.4; white-space:normal; word-break:break-word; }
+    .cp-chip-diag    { background:rgba(59,130,246,.1);  color:#60a5fa; }
+    .cp-chip-treat   { background:rgba(139,92,246,.12); color:#a78bfa; }
+    .cp-chip-out     { background:rgba(16,185,129,.12); color:#34d399; }
+    .cp-chip-ae      { background:rgba(245,158,11,.12); color:#fbbf24; }
+    .cp-chip-lab     { background:rgba(99,102,241,.12); color:#818cf8; }
+    .cp-chip-stage   { background:rgba(236,72,153,.12); color:#f472b6; }
+    html.light .cp-chip-diag  { background:rgba(59,130,246,.08);  color:#1d4ed8; }
+    html.light .cp-chip-treat { background:rgba(139,92,246,.08); color:#7c3aed; }
+    html.light .cp-chip-out   { background:rgba(16,185,129,.1);  color:#059669; }
+    html.light .cp-chip-ae    { background:rgba(245,158,11,.1);  color:#b45309; }
+    html.light .cp-chip-lab   { background:rgba(99,102,241,.1);  color:#4338ca; }
+    html.light .cp-chip-stage { background:rgba(236,72,153,.1);  color:#be185d; }
+    /* Dose badge paired with treatment */
+    .cp-dose { display:inline-flex; align-items:center; padding:.1rem .45rem; border-radius:.25rem; font-size:.65rem; font-weight:600; font-family:ui-monospace,monospace; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); }
+    html.light .cp-dose { background:rgba(0,0,0,.04); border-color:rgba(0,0,0,.07); }
+    /* Evidence level badge */
+    .ev-badge { display:inline-flex; align-items:center; gap:.35rem; padding:.25rem .65rem; border-radius:.5rem; font-size:.72rem; font-weight:600; border:1px solid; }
+    html.dark  .ev-badge { background:rgba(96,165,250,.08); border-color:rgba(96,165,250,.2); color:#93c5fd; }
+    html.light .ev-badge { background:rgba(59,130,246,.06); border-color:rgba(59,130,246,.2); color:#1d4ed8; }
+    /* Source attribution row */
+    .cp-source-row { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem .75rem; padding-top:.65rem; margin-top:.65rem; border-top:1px solid; }
+    html.dark  .cp-source-row { border-color:#21262d; }
+    html.light .cp-source-row { border-color:#f1f5f9; }
+    /* Dev mode toggle */
+    .devmode-toggle { display:inline-flex; align-items:center; gap:.35rem; font-size:.7rem; font-weight:600; padding:.2rem .55rem; border-radius:.375rem; border:1px dashed; cursor:pointer; transition:all .15s; user-select:none; }
+    html.dark  .devmode-toggle { border-color:#30363d; color:#4b5563; }
+    html.dark  .devmode-toggle:hover { border-color:#4b5563; color:#6b7280; }
+    html.light .devmode-toggle { border-color:#e2e8f0; color:#94a3b8; }
+    html.light .devmode-toggle:hover { border-color:#cbd5e1; color:#64748b; }
     #chatMessages { scrollbar-width:thin; }
     .typing-dot { animation:blink 1.2s infinite; }
     .typing-dot:nth-child(2) { animation-delay:.2s; }
@@ -485,62 +524,248 @@ document.getElementById('runExperiencesBtn').addEventListener('click', async () 
 });
 
 // ═══════════════════ PROFILES PAGE ═════════════════════════════════════════
-function buildAttributionHtml(attr) {
-  if (!attr) return '';
-  const parts = [];
-  if (attr.journal)   parts.push(`<em>${esc(attr.journal)}</em>`);
-  if (attr.pub_year)  parts.push(esc(attr.pub_year));
-  if (attr.external_id) parts.push(`<span class="font-mono">${esc(attr.external_id)}</span>`);
-  const link = attr.source_url
-    ? `<a href="${esc(attr.source_url)}" target="_blank" rel="noopener" class="hover:text-brand-400 underline underline-offset-2 transition-colors">${esc(attr.source_type?.toUpperCase()||'Source')} ↗</a>`
+
+// SVG icons (inline, 14×14)
+const ICONS = {
+  diagnosis: `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.3 24.3 0 014.5 0m0 0v5.714c0 .845.449 1.618 1.182 2.033l.643.361a3 3 0 013.175 0l.643-.361A2.25 2.25 0 0019.5 9.318V3.104M14.25 3.104c.251.023.501.05.75.082M12 3v1.5"/></svg>`,
+  treatments: `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+  outcomes:   `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+  adverse:    `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>`,
+  evidence:   `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0118 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375"/></svg>`,
+  labs:       `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>`,
+  source:     `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/></svg>`,
+  external:   `<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>`,
+  code:       `<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/></svg>`,
+};
+
+// Chip row for a list of values
+function chipRow(items, cls) {
+  if (!items || !items.length) return '';
+  return `<div class="flex flex-wrap gap-1.5">${items.map(v => `<span class="cp-chip ${cls}">${esc(v)}</span>`).join('')}</div>`;
+}
+
+// Paired treatment + dose chips
+function treatmentRow(treatments, dosages, durations) {
+  if (!treatments || !treatments.length) return '';
+  return `<div class="flex flex-wrap gap-2">${treatments.map((t,i) => {
+    const dose = dosages?.[i] || '';
+    const dur  = durations?.[i] || '';
+    return `<span class="flex items-center gap-1 cp-chip cp-chip-treat">
+      ${esc(t)}
+      ${dose ? `<span class="cp-dose">${esc(dose)}</span>` : ''}
+      ${dur  ? `<span class="cp-dose opacity-70">${esc(dur)}</span>` : ''}
+    </span>`;
+  }).join('')}</div>`;
+}
+
+// Evidence level badge with colour-coded icon
+function evidenceBadge(level) {
+  if (!level) return '';
+  const upper = level.toUpperCase();
+  let dot = 'bg-brand-400';
+  if (/meta.?anal|systematic/i.test(level))    dot = 'bg-emerald-400';
+  else if (/phase\s*iii|rct|randomis/i.test(level)) dot = 'bg-emerald-400';
+  else if (/phase\s*ii/i.test(level))          dot = 'bg-yellow-400';
+  else if (/cohort|observ/i.test(level))        dot = 'bg-yellow-400';
+  else if (/case\s*report|case\s*series/i.test(level)) dot = 'bg-orange-400';
+  else if (/commentary|editorial|review/i.test(level)) dot = 'bg-slate-400';
+  return `<span class="ev-badge">${ICONS.evidence}<span class="w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}"></span>${esc(level)}</span>`;
+}
+
+// Source attribution footer
+function buildAttributionHtml(attr, p) {
+  const SOURCE_LABEL = {pubmed:'PubMed', europepmc:'Europe PMC', clinicaltrials:'ClinicalTrials.gov'};
+  const color = SOURCE_COLOR[p.source] || 'blue';
+  const srcLabel = SOURCE_LABEL[p.source] || p.source;
+  const date = p.processed_at
+    ? new Date(p.processed_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
     : '';
-  return `<div class="mt-2 pt-2 dark:border-surface-border border-slate-100 border-t flex flex-wrap items-center gap-x-3 gap-y-1 text-xs dark:text-slate-500 text-slate-400">
-    <svg class="w-3 h-3 text-brand-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/></svg>
-    ${parts.join('<span class="opacity-30">·</span>')} ${link}
+
+  const metaParts = [];
+  const journal  = (attr?.journal  || p.journal  || '').trim();
+  const pub_year = (attr?.pub_year || p.pub_year || '').trim();
+  const ext_id   = attr?.external_id || '';
+  if (journal)  metaParts.push(`<span class="italic">${esc(journal)}</span>`);
+  if (pub_year) metaParts.push(`<span>${esc(pub_year)}</span>`);
+  if (ext_id)   metaParts.push(`<span class="font-mono opacity-70 text-[.65rem]">${esc(ext_id)}</span>`);
+
+  const link = (attr?.source_url || p.url)
+    ? `<a href="${esc(attr?.source_url || p.url)}" target="_blank" rel="noopener"
+          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border transition-colors
+                 dark:border-surface-border dark:text-slate-400 dark:hover:text-brand-400 dark:hover:border-brand-500
+                 border-slate-200 text-slate-500 hover:text-brand-500 hover:border-brand-400 text-xs font-medium">
+        ${ICONS.external} Open source
+      </a>`
+    : '';
+
+  return `<div class="cp-source-row">
+    <span class="inline-flex items-center gap-1.5 text-xs dark:text-slate-500 text-slate-400">
+      ${ICONS.source}
+      ${badge(color, srcLabel)}
+      ${metaParts.join('<span class="opacity-20 mx-0.5">·</span>')}
+    </span>
+    ${link}
+    ${date ? `<span class="ml-auto text-xs dark:text-slate-600 text-slate-300">${esc(date)}</span>` : ''}
   </div>`;
 }
 
 function buildProfileCard(p) {
-  const color = SOURCE_COLOR[p.source] || 'blue';
-  const LABEL = {pubmed:'PubMed', europepmc:'Europe PMC', clinicaltrials:'ClinicalTrials'};
   const prof = p.profile || {};
-  const fields = [
-    ['Diagnosis',        (prof.diagnosis||[]).join(', ')],
-    ['Treatments',       (prof.treatments||[]).join(', ')],
-    ['Outcomes',         (prof.outcomes||[]).join(', ')],
-    ['Adverse effects',  (prof.adverse_effects||[]).join(', ')],
-    ['Evidence level',   prof.evidence_level],
-    ['Disease stage',    prof.disease_stage],
-    ['Triggers',         (prof.triggers||[]).join(', ')],
-    ['Labs',             (prof.laboratory_findings||[]).join(', ')],
-  ].filter(([,v]) => v);
+  const diagnosis         = prof.diagnosis         || [];
+  const treatments        = prof.treatments        || [];
+  const dosages           = prof.dosages           || [];
+  const treatment_duration= prof.treatment_duration|| [];
+  const outcomes          = prof.outcomes          || [];
+  const adverse_effects   = prof.adverse_effects   || [];
+  const evidence_level    = prof.evidence_level    || '';
+  const disease_stage     = prof.disease_stage     || '';
+  const triggers          = prof.triggers          || [];
+  const symptoms          = prof.symptoms          || [];
+  const lab_findings      = prof.laboratory_findings || [];
+  const biopsy_findings   = prof.biopsy_findings   || [];
+  const timeline          = prof.timeline          || [];
+  const demographics      = [prof.patient_age, prof.patient_sex].filter(Boolean).join(', ');
 
-  const date = p.processed_at ? new Date(p.processed_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
-  const titleLink = p.url
-    ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" class="hover:text-brand-400 transition-colors">${esc(p.title||p.episode_id)}</a>`
-    : esc(p.title||p.episode_id);
+  const titleLink = (p.url)
+    ? `<a href="${esc(p.url)}" target="_blank" rel="noopener"
+          class="hover:text-brand-400 transition-colors">${esc(p.title || p.episode_id)}</a>`
+    : esc(p.title || p.episode_id);
 
-  return `<article class="result-card rounded-xl border dark:bg-surface-card dark:border-surface-border bg-white border-slate-200 p-5 animate-slide-up">
-    <div class="flex items-start gap-2 mb-2.5 flex-wrap">
-      ${badge(color, LABEL[p.source]||p.source)}
-      ${p.journal ? `<span class="text-xs dark:text-slate-500 text-slate-400 italic">${esc(p.journal)}</span>` : ''}
-      ${p.pub_year ? `<span class="text-xs dark:text-slate-500 text-slate-400">${esc(p.pub_year)}</span>` : ''}
+  const hasContent = diagnosis.length || treatments.length || outcomes.length
+    || adverse_effects.length || evidence_level || disease_stage
+    || triggers.length || lab_findings.length || biopsy_findings.length;
+
+  // Build section blocks — only render sections with data
+  let sections = '';
+
+  // ── Evidence level ─────────────────────────────────────────────────────
+  const evHtml = evidenceBadge(evidence_level);
+
+  // ── Demographics / stage ───────────────────────────────────────────────
+  const topMeta = [];
+  if (disease_stage) topMeta.push(`<span class="cp-chip cp-chip-stage text-xs">${esc(disease_stage)}</span>`);
+  if (demographics)  topMeta.push(`<span class="text-xs dark:text-slate-500 text-slate-400">${esc(demographics)}</span>`);
+
+  // ── Diagnosis ──────────────────────────────────────────────────────────
+  if (diagnosis.length) {
+    sections += `<div class="cp-section">
+      <div class="cp-section-label">${ICONS.diagnosis} Diagnosis</div>
+      ${chipRow(diagnosis, 'cp-chip-diag')}
+    </div>`;
+  }
+
+  // ── Treatments & Dosages ───────────────────────────────────────────────
+  if (treatments.length) {
+    sections += `<div class="cp-section">
+      <div class="cp-section-label">${ICONS.treatments} Treatments &amp; Dosages</div>
+      ${treatmentRow(treatments, dosages, treatment_duration)}
+    </div>`;
+  }
+
+  // ── Outcomes + Adverse Events (side by side when both exist) ──────────
+  const hasOut = outcomes.length > 0;
+  const hasAE  = adverse_effects.length > 0;
+  if (hasOut || hasAE) {
+    if (hasOut && hasAE) {
+      sections += `<div class="cp-section">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <div class="cp-section-label">${ICONS.outcomes} Outcomes</div>
+            ${chipRow(outcomes, 'cp-chip-out')}
+          </div>
+          <div>
+            <div class="cp-section-label">${ICONS.adverse} Adverse Events</div>
+            ${chipRow(adverse_effects, 'cp-chip-ae')}
+          </div>
+        </div>
+      </div>`;
+    } else if (hasOut) {
+      sections += `<div class="cp-section">
+        <div class="cp-section-label">${ICONS.outcomes} Outcomes</div>
+        ${chipRow(outcomes, 'cp-chip-out')}
+      </div>`;
+    } else {
+      sections += `<div class="cp-section">
+        <div class="cp-section-label">${ICONS.adverse} Adverse Events</div>
+        ${chipRow(adverse_effects, 'cp-chip-ae')}
+      </div>`;
+    }
+  }
+
+  // ── Triggers / Symptoms ────────────────────────────────────────────────
+  const trigAndSym = [...triggers, ...symptoms.slice(0,3)].filter(Boolean);
+  if (trigAndSym.length) {
+    sections += `<div class="cp-section">
+      <div class="cp-section-label">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
+        Triggers &amp; Symptoms
+      </div>
+      ${chipRow(trigAndSym, 'cp-chip-lab')}
+    </div>`;
+  }
+
+  // ── Lab / Biopsy / Timeline ────────────────────────────────────────────
+  const labItems = [...lab_findings, ...biopsy_findings].filter(Boolean);
+  if (labItems.length) {
+    sections += `<div class="cp-section">
+      <div class="cp-section-label">${ICONS.labs} Laboratory &amp; Biopsy Findings</div>
+      ${chipRow(labItems, 'cp-chip-lab')}
+    </div>`;
+  }
+  if (timeline.length) {
+    sections += `<div class="cp-section">
+      <div class="cp-section-label">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Timeline
+      </div>
+      <ol class="space-y-1">${timeline.map(t => `<li class="flex gap-2 text-xs dark:text-slate-400 text-slate-600"><span class="mt-1 w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0"></span>${esc(t)}</li>`).join('')}</ol>
+    </div>`;
+  }
+
+  // ── Empty state ────────────────────────────────────────────────────────
+  if (!hasContent) {
+    sections = `<div class="cp-section">
+      <p class="text-xs dark:text-slate-500 text-slate-400 italic">
+        No structured clinical data could be extracted from this abstract.
+      </p>
+    </div>`;
+  }
+
+  return `<article class="result-card rounded-xl border dark:bg-surface-card dark:border-surface-border bg-white border-slate-200 overflow-hidden animate-slide-up">
+
+    <!-- Card header -->
+    <div class="px-5 pt-5 pb-3">
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        ${evHtml}
+        ${topMeta.join('')}
+      </div>
+      <h3 class="text-sm font-semibold dark:text-slate-100 text-slate-800 leading-snug">
+        ${titleLink}
+      </h3>
     </div>
-    <h3 class="text-sm font-semibold dark:text-slate-100 text-slate-800 leading-snug mb-3">${titleLink}</h3>
-    ${fields.length ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 mb-3">
-      ${fields.map(([label,val]) => `<div>
-        <span class="profile-label dark:text-slate-500 text-slate-400 block mb-0.5">${esc(label)}</span>
-        <span class="text-xs dark:text-slate-300 text-slate-700">${esc(val)}</span>
-      </div>`).join('')}
-    </div>` : `<p class="text-xs dark:text-slate-500 text-slate-400 mb-3">No structured fields extracted.</p>`}
-    ${buildAttributionHtml(p.attribution)}
-    <details class="mt-3">
-      <summary class="flex items-center gap-1.5 text-xs dark:text-slate-500 text-slate-400 hover:text-brand-400 transition-colors select-none">
-        Raw JSON <svg class="chev w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+
+    <!-- Clinical sections -->
+    <div class="px-5 pb-1">
+      ${sections}
+    </div>
+
+    <!-- Source attribution footer -->
+    <div class="px-5 pb-4">
+      ${buildAttributionHtml(p.attribution, p)}
+    </div>
+
+    <!-- Developer mode (raw JSON) -->
+    <details class="border-t dark:border-surface-border border-slate-100">
+      <summary class="devmode-toggle mx-5 my-2.5">
+        ${ICONS.code}
+        Developer mode
+        <svg class="chev w-3 h-3 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
       </summary>
-      <pre class="mt-2 text-xs dark:bg-[#0d1117] bg-slate-50 dark:text-slate-300 text-slate-700 rounded-lg p-3 overflow-x-auto leading-relaxed">${esc(JSON.stringify(prof,null,2))}</pre>
+      <div class="px-5 pb-4">
+        <p class="text-xs dark:text-slate-600 text-slate-400 mb-2">Raw extracted JSON — for debugging and integration use only.</p>
+        <pre class="text-xs dark:bg-[#0d1117] bg-slate-50 dark:text-slate-300 text-slate-700 rounded-lg p-3 overflow-x-auto leading-relaxed">${esc(JSON.stringify(prof,null,2))}</pre>
+      </div>
     </details>
-    ${date ? `<p class="text-xs dark:text-slate-600 text-slate-300 mt-3 text-right">${esc(date)}</p>` : ''}
   </article>`;
 }
 
