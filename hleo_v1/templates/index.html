@@ -1233,6 +1233,7 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
   try {
     const res  = await fetch(`/search?q=${encodeURIComponent(q)}`);
     if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const data = await res.json();
     allSearchResults = normResults(data);
 
     // Feature 002: capture search context for the AI assistant
