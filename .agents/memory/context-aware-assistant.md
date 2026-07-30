@@ -26,6 +26,20 @@ The assistant system prompt is structured in three explicit priority blocks when
 - `sendMessage()` includes `search_context: _activeSearchCtx` in the POST body — no UI change, purely data flow
 - `_activeSearchCtx` is `null` until the first search, so existing assistant sessions without a prior search are unaffected
 
+## Response strategy (Feature 004 — Smart Answer Engine)
+The rigid 4-section template ("Ricerca eseguita / Evidenze principali / Sintesi clinica / Conoscenze supplementari") was replaced with a question-driven strategy:
+
+**Prompt now instructs the model to:**
+1. Identify what the user is actually asking (fact, comparison, summary, side-effect)
+2. Open the response with a direct answer — NEVER with search metadata ("X articles retrieved", "Search performed", etc.)
+3. Use question-adapted section headings (not fixed labels)
+4. Cite only the relevant articles; skip irrelevant ones
+5. Omit the "Additional Medical Knowledge" section entirely when retrieved evidence is sufficient
+
+**Why:** The old template forced the AI to open every reply with database/retrieval metadata, which answered an unasked question instead of the user's actual question.
+
+**How to apply:** The RESPONSE STRATEGY block in `search_block` (api/main.py) drives this. If the format needs revisiting, edit that block only — the three-priority structure (search → HLEO DB → general knowledge) is unchanged.
+
 ## Verified behaviour
-- Without search context: uses DB RAG + general knowledge as before
-- With search context (3 articles): response opens with "Nei risultati della tua ricerca..." cites [PubMed] / [Europe PMC] inline, no generic opener
+- Without search context: uses DB RAG + general knowledge, 3–6 sentence concise reply
+- With search context: first sentence directly answers the question; evidence and clinical interpretation follow; "Additional Medical Knowledge" section omitted when articles are sufficient
