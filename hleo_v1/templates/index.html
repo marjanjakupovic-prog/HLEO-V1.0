@@ -248,7 +248,31 @@
     <div class="skeleton rounded-xl h-44"></div>
   </div>
   <div id="expList" class="space-y-3"></div>
-  <div id="expEmpty" class="hidden text-center py-20 dark:text-slate-500 text-slate-400 text-sm">No patient experiences yet. Run <strong>Extract experiences (LLM)</strong> after a search.</div>
+
+  <!-- Experiences empty state — updated dynamically by updateExpEmptyState() -->
+  <div id="expEmpty" class="hidden">
+    <div class="text-center py-16 max-w-md mx-auto">
+      <div id="expEmptyIcon" class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-4 dark:bg-surface-card bg-slate-100">
+        <svg class="w-7 h-7 dark:text-slate-600 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+        </svg>
+      </div>
+      <h3 id="expEmptyTitle" class="text-sm font-semibold dark:text-slate-300 text-slate-700 mb-1">No patient experiences yet</h3>
+      <p id="expEmptyBody" class="text-xs dark:text-slate-500 text-slate-400 leading-relaxed">
+        Search for a topic, then click <strong>Extract experiences (LLM)</strong> to collect and analyse Reddit posts.
+      </p>
+      <div id="expEmptySetup" class="hidden mt-5 text-left rounded-xl border dark:bg-surface-card dark:border-surface-border bg-white border-slate-200 p-4 text-xs dark:text-slate-300 text-slate-600 space-y-2">
+        <p class="font-semibold dark:text-slate-200 text-slate-700">Setup steps to connect Reddit:</p>
+        <ol class="list-decimal list-inside space-y-1.5 dark:text-slate-400 text-slate-500">
+          <li>Go to <a href="https://www.reddit.com/prefs/apps" target="_blank" class="text-brand-400 underline underline-offset-2">reddit.com/prefs/apps</a></li>
+          <li>Click <strong>Create another app…</strong> → choose <strong>script</strong></li>
+          <li>Name it anything; set redirect URI to <code class="dark:bg-surface-border bg-slate-100 px-1 rounded">http://localhost</code></li>
+          <li>Copy the <strong>client ID</strong> (under the app name) and the <strong>secret</strong></li>
+          <li>Add them as Replit Secrets: <strong>REDDIT_CLIENT_ID</strong> and <strong>REDDIT_CLIENT_SECRET</strong></li>
+        </ol>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ──────────────────── ASSISTANT PAGE ──────────────────── -->
@@ -497,6 +521,61 @@ document.getElementById('runPipelineBtn').addEventListener('click', async () => 
   }
 });
 
+// ── Reddit status → human-readable UI message ────────────────────────────
+const REDDIT_STATUS_UI = {
+  no_credentials: {
+    icon: '🔑',
+    type: 'warn',
+    title: 'Reddit not connected',
+    body: 'Add <strong>REDDIT_CLIENT_ID</strong> and <strong>REDDIT_CLIENT_SECRET</strong> as Replit Secrets (Settings → Secrets). ' +
+          'Register a free Reddit script app at <a href="https://www.reddit.com/prefs/apps" target="_blank" class="underline">reddit.com/prefs/apps</a> — ' +
+          'takes about 60 seconds.',
+  },
+  auth_error: {
+    icon: '🚫',
+    type: 'error',
+    title: 'Reddit authentication failed',
+    body: 'The credentials on file were rejected. Check that <strong>REDDIT_CLIENT_ID</strong> and <strong>REDDIT_CLIENT_SECRET</strong> ' +
+          'are copied correctly and that the app type is <em>script</em>.',
+  },
+  rate_limited: {
+    icon: '⏱️',
+    type: 'warn',
+    title: 'Reddit rate limit reached',
+    body: 'Too many requests in a short window. Wait 60 seconds and try again.',
+  },
+  no_results: {
+    icon: '🔍',
+    type: 'warn',
+    title: 'No Reddit posts found',
+    body: null, // filled from data.reddit_reason
+  },
+  network_error: {
+    icon: '📡',
+    type: 'error',
+    title: 'Could not reach Reddit',
+    body: 'Network error connecting to Reddit's API. Check the server connection and retry.',
+  },
+  no_openai_key: {
+    icon: '🤖',
+    type: 'warn',
+    title: 'LLM extraction disabled',
+    body: 'Set the <strong>OPENAI_API_KEY</strong> Replit Secret to enable patient experience extraction.',
+  },
+};
+
+function redditStatusBanner(data) {
+  const status = data.reddit_status;
+  if (!status || status === 'ok') return null;
+  const ui = REDDIT_STATUS_UI[status];
+  if (!ui) return null;
+  const bodyText = ui.body || esc(data.reddit_reason || '');
+  return {
+    type: ui.type,
+    html: `<strong>${ui.icon} ${ui.title}:</strong> ${bodyText}`,
+  };
+}
+
 // Experience ingest
 document.getElementById('runExperiencesBtn').addEventListener('click', async () => {
   if (!lastQuery) return;
@@ -508,7 +587,17 @@ document.getElementById('runExperiencesBtn').addEventListener('click', async () 
     const res  = await fetch(`/experiences/ingest?q=${encodeURIComponent(lastQuery)}`, {method:'POST'});
     if (!res.ok) throw new Error(`Server error ${res.status}`);
     const data = await res.json();
-    if (data.error) { showBanner('searchBanner', `⚠️ ${esc(data.error)}`, 'warn'); return; }
+
+    // Check Reddit status first — may be the only response
+    const statusBanner = redditStatusBanner(data);
+    if (statusBanner) {
+      showBanner('searchBanner', statusBanner.html, statusBanner.type);
+      // Also refresh the Experiences tab so its empty state reflects the reason
+      updateExpEmptyState(data.reddit_status, data.reddit_reason);
+      return;
+    }
+
+    // Success path
     const n = data.saved, e = data.already_existed, err = data.errors;
     let msg = `✅ Experience extraction complete — <strong>${n} experience${n!==1?'s':''} saved</strong>`;
     if (e)   msg += `, ${e} already existed`;
@@ -839,22 +928,80 @@ function buildExperienceCard(exp) {
   </article>`;
 }
 
+// Update the Experiences empty state based on a Reddit status code
+function updateExpEmptyState(status, reason) {
+  const empty = document.getElementById('expEmpty');
+  const title = document.getElementById('expEmptyTitle');
+  const body  = document.getElementById('expEmptyBody');
+  const setup = document.getElementById('expEmptySetup');
+
+  // Map each status to copy
+  const copyMap = {
+    no_credentials: {
+      title: 'Reddit not connected',
+      body:  'Add <strong>REDDIT_CLIENT_ID</strong> and <strong>REDDIT_CLIENT_SECRET</strong> as Replit Secrets to collect patient posts.',
+      showSetup: true,
+    },
+    auth_error: {
+      title: 'Reddit authentication failed',
+      body:  'The credentials on file were rejected. Check that REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET are correct and the app type is <em>script</em>.',
+      showSetup: false,
+    },
+    rate_limited: {
+      title: 'Reddit rate limit reached',
+      body:  'Too many requests. Wait 60 seconds and try again.',
+      showSetup: false,
+    },
+    no_results: {
+      title: 'No Reddit posts found',
+      body:  esc(reason || 'No posts matched your query. Try shorter or broader terms.'),
+      showSetup: false,
+    },
+    network_error: {
+      title: 'Could not reach Reddit',
+      body:  'Network error connecting to Reddit's API. Check the server connection.',
+      showSetup: false,
+    },
+    no_openai_key: {
+      title: 'LLM extraction disabled',
+      body:  'Set the <strong>OPENAI_API_KEY</strong> Replit Secret to enable patient experience extraction.',
+      showSetup: false,
+    },
+  };
+
+  const copy = copyMap[status] || {
+    title: 'No patient experiences yet',
+    body:  'Search for a topic, then click <strong>Extract experiences (LLM)</strong>.',
+    showSetup: false,
+  };
+
+  if (title)  title.textContent = copy.title;
+  if (body)   body.innerHTML    = copy.body;
+  if (setup)  setup.classList.toggle('hidden', !copy.showSetup);
+  empty.classList.remove('hidden');
+}
+
 async function loadExperiences() {
   const list  = document.getElementById('expList');
   const empty = document.getElementById('expEmpty');
   const skel  = document.getElementById('expSkeleton');
-  skel.classList.remove('hidden'); list.innerHTML=''; empty.classList.add('hidden');
+  skel.classList.remove('hidden'); list.innerHTML = ''; empty.classList.add('hidden');
   try {
     const res  = await fetch('/experiences?limit=50');
     const data = await res.json();
     skel.classList.add('hidden');
-    document.getElementById('expTotalBadge').textContent = data.total ? `${data.total} experience${data.total!==1?'s':''}` : '';
-    document.getElementById('expNavCount').textContent   = data.total ? `(${data.total})` : '';
-    if (!data.experiences?.length) { empty.classList.remove('hidden'); return; }
+    const total = data.total || 0;
+    document.getElementById('expTotalBadge').textContent = total ? `${total} experience${total !== 1 ? 's' : ''}` : '';
+    document.getElementById('expNavCount').textContent   = total ? `(${total})` : '';
+    if (!data.experiences?.length) {
+      // Show default empty state (no status known at load time)
+      updateExpEmptyState(null, null);
+      return;
+    }
     list.innerHTML = data.experiences.map(buildExperienceCard).join('');
-  } catch(e) {
+  } catch (e) {
     skel.classList.add('hidden');
-    list.innerHTML = `<p class="text-xs text-red-400">Failed: ${esc(e.message)}</p>`;
+    list.innerHTML = `<p class="text-xs text-red-400">Failed to load: ${esc(e.message)}</p>`;
   }
 }
 

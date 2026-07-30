@@ -349,21 +349,42 @@ def list_profiles(
 @app.post("/experiences/ingest")
 def ingest_experiences(q: str = Query(...), db: Session = Depends(get_db)):
     """
-    Collect Reddit posts for query, LLM-extract patient experiences, save to DB.
+    Collect Reddit posts via PRAW OAuth, LLM-extract patient experiences, save to DB.
+
+    Always returns a structured response including:
+      reddit_status  — ok | no_credentials | auth_error | rate_limited | no_results | network_error
+      reddit_reason  — human-readable explanation of the status
     """
-    from core.pipeline import HLEOPipeline
+    from collectors.reddit import RedditCollector, STATUS_OK, STATUS_NO_CREDENTIALS
     from core.patient_extractor import PatientExperienceExtractor
 
-    pipeline  = HLEOPipeline()
     extractor = PatientExperienceExtractor()
-
     if extractor.client is None:
-        return {"error": "OPENAI_API_KEY not set — cannot run extraction."}
+        return {
+            "query": q, "collected": 0, "saved": 0, "errors": 0, "results": [],
+            "reddit_status": "no_openai_key",
+            "reddit_reason": "OPENAI_API_KEY is not set — LLM extraction is disabled.",
+        }
 
-    raw_reddit = pipeline.collect(q).get("reddit", [])
-    if not raw_reddit:
-        return {"query": q, "collected": 0, "saved": 0, "errors": 0, "results": []}
+    # ── Collect from Reddit via PRAW ────────────────────────────────────────
+    collector = RedditCollector()
+    raw_reddit, reddit_status, reddit_reason = collector.search_with_status(q, limit=15)
+    logger.info(f"Reddit [{reddit_status}] for '{q}': {reddit_reason}")
 
+    if reddit_status != STATUS_OK:
+        return {
+            "query":          q,
+            "collected":      0,
+            "saved":          0,
+            "already_existed": 0,
+            "errors":         0,
+            "results":        [],
+            "error_details":  [],
+            "reddit_status":  reddit_status,
+            "reddit_reason":  reddit_reason,
+        }
+
+    # ── Extract and save ────────────────────────────────────────────────────
     saved  = []
     errors = []
 
@@ -383,8 +404,8 @@ def ingest_experiences(q: str = Query(...), db: Session = Depends(get_db)):
             continue
 
         body = (post.text or "").strip()
-        if len(body) < 50:          # too short to extract anything useful
-            errors.append({"episode_id": episode_id, "error": "Post too short — skipped."})
+        if len(body) < 50:
+            errors.append({"episode_id": episode_id, "error": "Post body too short — skipped."})
             continue
 
         try:
@@ -423,14 +444,17 @@ def ingest_experiences(q: str = Query(...), db: Session = Depends(get_db)):
             logger.exception(f"Failed to extract experience {episode_id}: {exc}")
             errors.append({"episode_id": episode_id, "error": str(exc)})
 
+    n_saved = len([s for s in saved if s["status"] == "saved"])
     return {
-        "query":     q,
-        "collected": len(raw_reddit),
-        "saved":     len([s for s in saved if s["status"] == "saved"]),
+        "query":           q,
+        "collected":       len(raw_reddit),
+        "saved":           n_saved,
         "already_existed": len([s for s in saved if s["status"] == "already_exists"]),
-        "errors":    len(errors),
-        "results":   saved,
-        "error_details": errors,
+        "errors":          len(errors),
+        "results":         saved,
+        "error_details":   errors,
+        "reddit_status":   STATUS_OK,
+        "reddit_reason":   f"Retrieved {len(raw_reddit)} post(s); {n_saved} new experience(s) saved.",
     }
 
 
