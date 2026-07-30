@@ -15,10 +15,11 @@ Endpoints:
 import logging
 import uuid
 from dataclasses import asdict
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, Depends, Query, Request, Body
+from fastapi import FastAPI, Depends, Query, Request, Body, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -557,16 +558,53 @@ def assistant_chat(
     client = OpenAI(api_key=api_key)
 
     # ── Session management ──────────────────────────────────────────
+    import json as _json
     session_id = body.session_id or str(uuid.uuid4())
     session = db.execute(
         select(ChatSession).where(ChatSession.session_id == session_id)
     ).scalar_one_or_none()
 
     if not session:
+        # Auto-create only when no session_id was supplied (new chat from welcome screen)
         title = body.message[:80]
-        session = ChatSession(session_id=session_id, title=title)
+        session = ChatSession(session_id=session_id, title=title, status="active")
         db.add(session)
         db.commit()
+    elif session.status == "closed":
+        raise HTTPException(
+            status_code=409,
+            detail="This session is closed. Reopen it before sending messages.",
+        )
+
+    # ── Persist search context on session (isolation guarantee) ────
+    # Always overwrite so the session always reflects the latest search.
+    now_utc = datetime.now(timezone.utc)
+    if body.search_context is not None:
+        session.search_query   = body.search_context.original_query
+        session.search_context = body.search_context.model_dump()
+        session.updated_at     = now_utc
+        db.commit()
+    else:
+        session.updated_at = now_utc
+        db.commit()
+
+    # ── Resolve effective search context (backend-enforced isolation) ──
+    # If the frontend didn't send a search_context, fall back to the one
+    # stored on THIS session — never from any other session.
+    effective_search_ctx = body.search_context
+    if effective_search_ctx is None and session.search_context:
+        try:
+            sc_data = session.search_context
+            effective_search_ctx = SearchContext(
+                original_query=sc_data.get("original_query", ""),
+                search_query=sc_data.get("search_query", ""),
+                detected_language=sc_data.get("detected_language", "en"),
+                articles=[
+                    SearchArticleCtx(**a) for a in sc_data.get("articles", [])
+                ],
+            )
+        except Exception:
+            effective_search_ctx = None
 
     # ── Load conversation history ───────────────────────────────────
     history_rows = db.execute(
@@ -657,10 +695,10 @@ def assistant_chat(
         if _resp_lang != "English" else ""
     )
 
-    # ── Priority 1: current search context (Feature 002) ───────────────
+    # ── Priority 1: current search context (Feature 002 + 003 isolation) ──
     search_block = ""
     has_search_articles = False
-    sc = body.search_context
+    sc = effective_search_ctx   # backend-resolved; never leaks from other sessions
 
     if sc and sc.articles:
         has_search_articles = True
@@ -802,6 +840,13 @@ def assistant_chat(
 
 @app.get("/assistant/sessions/{session_id}")
 def get_session(session_id: str, db: Session = Depends(get_db)):
+    """Return full message history + stored search context for a single session."""
+    session = db.execute(
+        select(ChatSession).where(ChatSession.session_id == session_id)
+    ).scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found.")
+
     messages = db.execute(
         select(ChatMessage)
         .where(ChatMessage.session_id == session_id)
@@ -809,7 +854,11 @@ def get_session(session_id: str, db: Session = Depends(get_db)):
     ).scalars().all()
 
     return {
-        "session_id": session_id,
+        "session_id":     session_id,
+        "title":          session.title,
+        "status":         session.status,
+        "search_query":   session.search_query,
+        "search_context": session.search_context,   # restored on session open
         "messages": [
             {
                 "role":         m.role,
@@ -892,24 +941,150 @@ async def translate_text(body: TranslateRequest):
     return out
 
 
+# ── Session management constants ──────────────────────────────────────────────
+_MAX_ACTIVE  = 10
+_MAX_CLOSED  = 20
+
+class SessionPatch(BaseModel):
+    action: str          # "rename" | "close" | "reopen"
+    title: Optional[str] = None
+
+
 @app.get("/assistant/sessions")
-def list_sessions(
-    limit: int = Query(10, ge=1, le=50),
-    db:    Session = Depends(get_db),
-):
-    rows = db.execute(
-        select(ChatSession)
-        .order_by(desc(ChatSession.created_at))
-        .limit(limit)
+def list_sessions(db: Session = Depends(get_db)):
+    """Return active and closed sessions with message counts."""
+    all_sessions = db.execute(
+        select(ChatSession).order_by(desc(ChatSession.updated_at))
     ).scalars().all()
 
+    # Count messages per session in one query
+    msg_counts_raw = db.execute(
+        select(ChatMessage.session_id, func.count(ChatMessage.id).label("cnt"))
+        .group_by(ChatMessage.session_id)
+    ).all()
+    msg_counts = {row.session_id: row.cnt for row in msg_counts_raw}
+
+    def _fmt(s: ChatSession) -> dict:
+        return {
+            "session_id":   s.session_id,
+            "title":        s.title or "Untitled",
+            "search_query": s.search_query,
+            "message_count": msg_counts.get(s.session_id, 0),
+            "created_at":   s.created_at.isoformat() if s.created_at else None,
+            "updated_at":   s.updated_at.isoformat() if s.updated_at else None,
+            "closed_at":    s.closed_at.isoformat() if s.closed_at else None,
+        }
+
+    active = [_fmt(s) for s in all_sessions if s.status == "active"]
+    closed = [_fmt(s) for s in all_sessions if s.status == "closed"]
+    return {"active": active, "closed": closed}
+
+
+@app.post("/assistant/sessions")
+def create_session(db: Session = Depends(get_db)):
+    """Create a new active session, enforcing the 10-active limit."""
+    active_count = db.execute(
+        select(func.count(ChatSession.id)).where(ChatSession.status == "active")
+    ).scalar_one()
+    if active_count >= _MAX_ACTIVE:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"You have reached the maximum number of active sessions ({_MAX_ACTIVE}). "
+                "Close or delete an existing session before creating a new one."
+            ),
+        )
+    now = datetime.now(timezone.utc)
+    session = ChatSession(
+        session_id=str(uuid.uuid4()),
+        title="New session",
+        status="active",
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
     return {
-        "sessions": [
-            {
-                "session_id": r.session_id,
-                "title":      r.title,
-                "created_at": r.created_at.isoformat() if r.created_at else None,
-            }
-            for r in rows
-        ],
+        "session_id": session.session_id,
+        "title":      session.title,
+        "status":     session.status,
+        "created_at": session.created_at.isoformat(),
+        "updated_at": session.updated_at.isoformat(),
     }
+
+
+@app.patch("/assistant/sessions/{session_id}")
+def patch_session(session_id: str, body: SessionPatch, db: Session = Depends(get_db)):
+    """Rename, close, or reopen a session with limit enforcement."""
+    session = db.execute(
+        select(ChatSession).where(ChatSession.session_id == session_id)
+    ).scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found.")
+
+    now = datetime.now(timezone.utc)
+
+    if body.action == "rename":
+        if not body.title or not body.title.strip():
+            raise HTTPException(status_code=422, detail="Title cannot be empty.")
+        session.title      = body.title.strip()[:120]
+        session.updated_at = now
+
+    elif body.action == "close":
+        if session.status == "closed":
+            raise HTTPException(status_code=409, detail="Session is already closed.")
+        closed_count = db.execute(
+            select(func.count(ChatSession.id)).where(ChatSession.status == "closed")
+        ).scalar_one()
+        if closed_count >= _MAX_CLOSED:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"You have reached the maximum number of archived sessions ({_MAX_CLOSED}). "
+                    "Delete one or more archived sessions before closing another session."
+                ),
+            )
+        session.status     = "closed"
+        session.closed_at  = now
+        session.updated_at = now
+
+    elif body.action == "reopen":
+        if session.status == "active":
+            raise HTTPException(status_code=409, detail="Session is already active.")
+        active_count = db.execute(
+            select(func.count(ChatSession.id)).where(ChatSession.status == "active")
+        ).scalar_one()
+        if active_count >= _MAX_ACTIVE:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Maximum active sessions reached. "
+                    "Close or delete an active session before reopening this one."
+                ),
+            )
+        session.status     = "active"
+        session.closed_at  = None
+        session.updated_at = now
+
+    else:
+        raise HTTPException(status_code=422, detail=f"Unknown action: {body.action!r}")
+
+    db.commit()
+    return {"ok": True, "session_id": session_id, "action": body.action}
+
+
+@app.delete("/assistant/sessions/{session_id}")
+def delete_session(session_id: str, db: Session = Depends(get_db)):
+    """Permanently delete a session and all its messages."""
+    session = db.execute(
+        select(ChatSession).where(ChatSession.session_id == session_id)
+    ).scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    db.execute(
+        ChatMessage.__table__.delete().where(ChatMessage.session_id == session_id)
+    )
+    db.delete(session)
+    db.commit()
+    return {"ok": True, "deleted": session_id}

@@ -445,13 +445,30 @@
   <div class="flex flex-col lg:flex-row gap-6" style="height:calc(100vh - 10rem);">
 
     <!-- Sessions sidebar -->
-    <aside class="lg:w-56 flex-shrink-0 flex flex-col gap-2">
-      <div class="flex items-center justify-between mb-1">
-        <span class="text-xs font-semibold uppercase tracking-wider dark:text-slate-500 text-slate-400" data-i18n="assistant_sessions_label">Sessions</span>
-        <button id="newSessionBtn"
-          class="text-xs px-2.5 py-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-colors" data-i18n="assistant_new_session">New</button>
+    <aside class="lg:w-64 flex-shrink-0 flex flex-col gap-3 overflow-y-auto">
+
+      <!-- Limit error banner -->
+      <div id="sessionLimitBanner" class="hidden items-start gap-2 rounded-lg px-3 py-2 bg-red-500/10 border border-red-500/30 text-xs text-red-400">
+        <svg class="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+        <span id="sessionLimitText"></span>
       </div>
-      <div id="sessionList" class="space-y-1 overflow-y-auto flex-1"></div>
+
+      <!-- 🟢 Active sessions -->
+      <div class="flex flex-col gap-1.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider dark:text-slate-500 text-slate-400">🟢 Active</span>
+          <button id="newSessionBtn"
+            class="text-xs px-2.5 py-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-colors">+ New</button>
+        </div>
+        <div id="activeSessionList" class="space-y-1.5"></div>
+      </div>
+
+      <!-- ⚪ Closed sessions -->
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs font-semibold uppercase tracking-wider dark:text-slate-500 text-slate-400">⚪ Closed</span>
+        <div id="closedSessionList" class="space-y-1.5"></div>
+      </div>
+
     </aside>
 
     <!-- Chat area -->
@@ -637,6 +654,14 @@
 </div>
 
 <style>
+  .session-action-btn {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    display: inline-block;
+  }
   .suggestion-chip {
     padding:.5rem .75rem; font-size:.75rem; text-align:left;
     dark:border-surface-border border-slate-200 border rounded-lg
@@ -1686,45 +1711,273 @@ async function loadExperiences() {
   }
 }
 
-// ═══════════════════ ASSISTANT PAGE ════════════════════════════════════════
+// ═══════════════════ ASSISTANT PAGE — Session Management (Feature 003) ═══════
 let currentSessionId = localStorage.getItem('hleo-session') || null;
 
+// ── Limit banner ────────────────────────────────────────────────────────────
+function showSessionBanner(msg) {
+  const banner = document.getElementById('sessionLimitBanner');
+  document.getElementById('sessionLimitText').textContent = msg;
+  banner.classList.remove('hidden');
+  banner.classList.add('flex');
+  clearTimeout(banner._hideTimer);
+  banner._hideTimer = setTimeout(() => {
+    banner.classList.add('hidden');
+    banner.classList.remove('flex');
+  }, 8000);
+}
+
+// ── Format helpers ───────────────────────────────────────────────────────────
+function fmtRelative(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr), now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60)   return 'just now';
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+
+// ── Render session lists ─────────────────────────────────────────────────────
 async function loadSessions() {
-  const list = document.getElementById('sessionList');
   try {
-    const res  = await fetch('/assistant/sessions?limit=15');
+    const res  = await fetch('/assistant/sessions');
     const data = await res.json();
-    list.innerHTML = data.sessions.map(s => `
-      <button onclick="openSession('${esc(s.session_id)}')"
-        class="w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all
-          ${s.session_id === currentSessionId ? 'dark:bg-brand-500/20 bg-brand-50 dark:text-brand-300 text-brand-700' : 'dark:text-slate-400 text-slate-500 dark:hover:bg-surface-hover hover:bg-slate-50'}">
-        ${esc((s.title||'Untitled').slice(0,42))}
-      </button>`).join('');
+    renderActiveList(data.active || []);
+    renderClosedList(data.closed || []);
   } catch(e) { /* silent */ }
 }
 
+function renderActiveList(sessions) {
+  const el = document.getElementById('activeSessionList');
+  if (!sessions.length) {
+    el.innerHTML = '<p class="text-xs dark:text-slate-600 text-slate-400 px-1">No active sessions.</p>';
+    return;
+  }
+  el.innerHTML = sessions.map(s => {
+    const isOpen = s.session_id === currentSessionId;
+    const msgs   = s.message_count || 0;
+    const qTxt   = s.search_query ? `<span class="truncate opacity-60">${esc(s.search_query.slice(0,30))}</span>` : '';
+    return `
+    <div class="session-card rounded-lg p-2.5 text-xs transition-all cursor-pointer
+      ${isOpen ? 'dark:bg-brand-500/20 bg-brand-50 dark:border-brand-500/30 border-brand-200' : 'dark:bg-surface-hover/50 bg-slate-50 dark:border-surface-border border-slate-200'} border"
+      data-sid="${esc(s.session_id)}">
+      <div class="flex items-start justify-between gap-1 mb-1">
+        <span id="title-${esc(s.session_id)}" class="font-medium dark:text-slate-200 text-slate-700 leading-tight line-clamp-2 flex-1"
+          onclick="openSession('${esc(s.session_id)}')">${esc((s.title||'Untitled').slice(0,60))}</span>
+      </div>
+      ${qTxt ? `<div class="flex items-center gap-1 dark:text-slate-500 text-slate-400 mb-1.5">${qTxt}</div>` : ''}
+      <div class="flex items-center justify-between dark:text-slate-600 text-slate-400 mb-2">
+        <span>${msgs} msg${msgs!==1?'s':''}</span>
+        <span>${fmtRelative(s.updated_at)}</span>
+      </div>
+      <div class="flex gap-1 flex-wrap">
+        <button onclick="openSession('${esc(s.session_id)}')"
+          class="session-action-btn bg-brand-500/10 dark:text-brand-400 text-brand-600 hover:bg-brand-500/20">Open</button>
+        <button onclick="renameSession('${esc(s.session_id)}')"
+          class="session-action-btn dark:bg-slate-700 bg-slate-200 dark:text-slate-300 text-slate-600 hover:opacity-80">Rename</button>
+        <button onclick="closeSession('${esc(s.session_id)}')"
+          class="session-action-btn dark:bg-slate-700 bg-slate-200 dark:text-slate-400 text-slate-500 hover:opacity-80">Close</button>
+        <button onclick="deleteSession('${esc(s.session_id)}')"
+          class="session-action-btn bg-red-500/10 text-red-400 hover:bg-red-500/20">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderClosedList(sessions) {
+  const el = document.getElementById('closedSessionList');
+  if (!sessions.length) {
+    el.innerHTML = '<p class="text-xs dark:text-slate-600 text-slate-400 px-1">No closed sessions.</p>';
+    return;
+  }
+  el.innerHTML = sessions.map(s => {
+    const qTxt = s.search_query ? `<span class="truncate opacity-60">${esc(s.search_query.slice(0,30))}</span>` : '';
+    return `
+    <div class="rounded-lg p-2.5 text-xs dark:bg-surface-hover/30 bg-slate-50 dark:border-surface-border border-slate-200 border">
+      <div class="font-medium dark:text-slate-400 text-slate-500 leading-tight line-clamp-2 mb-1">
+        ${esc((s.title||'Untitled').slice(0,60))}
+      </div>
+      ${qTxt ? `<div class="flex items-center gap-1 dark:text-slate-600 text-slate-400 mb-1.5">${qTxt}</div>` : ''}
+      <div class="dark:text-slate-600 text-slate-400 mb-2">Closed ${fmtRelative(s.closed_at)}</div>
+      <div class="flex gap-1">
+        <button onclick="reopenSession('${esc(s.session_id)}')"
+          class="session-action-btn dark:bg-slate-700 bg-slate-200 dark:text-slate-300 text-slate-600 hover:opacity-80">Reopen</button>
+        <button onclick="deleteSession('${esc(s.session_id)}')"
+          class="session-action-btn bg-red-500/10 text-red-400 hover:bg-red-500/20">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Open / switch session ────────────────────────────────────────────────────
 async function openSession(sid) {
   currentSessionId = sid;
   localStorage.setItem('hleo-session', sid);
-  document.getElementById('chatWelcome').classList.add('hidden');
-  document.getElementById('chatMessages').innerHTML = '';
-  loadSessions();
+  // Clear chat UI immediately
+  const msgs = document.getElementById('chatMessages');
+  msgs.innerHTML = '';
+  document.getElementById('contextBadge').classList.add('hidden');
+  loadSessions();   // re-render sidebar to highlight active card
   try {
     const res  = await fetch(`/assistant/sessions/${sid}`);
+    if (!res.ok) throw new Error(`${res.status}`);
     const data = await res.json();
-    data.messages.forEach(m => appendBubble(m.role, m.content, m.context_used?.length||0));
-    scrollChat();
-  } catch(e) { /* silent */ }
+
+    // ── Session isolation: restore THIS session's search context ────
+    // Completely replaces _activeSearchCtx so the AI only sees this session's context.
+    if (data.search_context) {
+      _activeSearchCtx = data.search_context;
+      const badge = document.getElementById('contextBadge');
+      const badgeTxt = document.getElementById('contextBadgeText');
+      const artCount = data.search_context.articles?.length || 0;
+      if (artCount > 0) {
+        badgeTxt.textContent = `${artCount} article${artCount!==1?'s':''} in search context — "${data.search_query||''}"`;
+        badge.classList.remove('hidden');
+      }
+    } else {
+      _activeSearchCtx = null;
+    }
+
+    if (data.messages.length === 0) {
+      // Show welcome for empty sessions
+      const welcome = document.createElement('div');
+      welcome.id = 'chatWelcome';
+      welcome.className = 'h-full flex flex-col items-center justify-center text-center py-10';
+      welcome.innerHTML = `<p class="text-sm dark:text-slate-400 text-slate-500">Session open. Ask a question to begin.</p>`;
+      msgs.appendChild(welcome);
+    } else {
+      data.messages.forEach(m => appendBubble(m.role, m.content, m.context_used?.length||0));
+      scrollChat();
+    }
+  } catch(e) {
+    const err = document.createElement('div');
+    err.className = 'text-xs text-red-400 px-4 py-2';
+    err.textContent = `Could not load session: ${e.message}`;
+    msgs.appendChild(err);
+  }
 }
 
-document.getElementById('newSessionBtn').addEventListener('click', () => {
-  currentSessionId = null;
-  localStorage.removeItem('hleo-session');
-  const msgs = document.getElementById('chatMessages');
-  msgs.innerHTML = document.getElementById('chatWelcome').outerHTML;
-  document.getElementById('chatWelcome').classList.remove('hidden');
-  document.getElementById('contextBadge').classList.add('hidden');
+// ── New session ──────────────────────────────────────────────────────────────
+document.getElementById('newSessionBtn').addEventListener('click', async () => {
+  try {
+    const res  = await fetch('/assistant/sessions', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) {
+      showSessionBanner(data.detail || 'Could not create session.');
+      return;
+    }
+    // Clear any active search context — new session = clean slate
+    _activeSearchCtx = null;
+    currentSessionId = data.session_id;
+    localStorage.setItem('hleo-session', data.session_id);
+    const msgs = document.getElementById('chatMessages');
+    msgs.innerHTML = '';
+    document.getElementById('contextBadge').classList.add('hidden');
+    const welcome = document.createElement('div');
+    welcome.id = 'chatWelcome';
+    welcome.className = 'h-full flex flex-col items-center justify-center text-center py-10';
+    welcome.innerHTML = `<p class="text-sm dark:text-slate-400 text-slate-500">New session created. Ask a question to begin.</p>`;
+    msgs.appendChild(welcome);
+    loadSessions();
+  } catch(e) {
+    showSessionBanner('Network error. Could not create session.');
+  }
 });
+
+// ── Rename ───────────────────────────────────────────────────────────────────
+async function renameSession(sid) {
+  const titleEl = document.getElementById(`title-${sid}`);
+  if (!titleEl) return;
+  const current = titleEl.textContent.trim();
+  // Replace title span with inline input
+  titleEl.innerHTML = `<input id="rename-input-${sid}"
+    class="w-full bg-transparent border-b dark:border-slate-500 border-slate-300 outline-none text-xs py-0.5"
+    value="${esc(current)}" maxlength="120" />`;
+  const inp = document.getElementById(`rename-input-${sid}`);
+  inp.focus(); inp.select();
+  const commit = async () => {
+    const newTitle = inp.value.trim();
+    if (!newTitle || newTitle === current) { titleEl.textContent = current; return; }
+    try {
+      const res = await fetch(`/assistant/sessions/${sid}`, {
+        method: 'PATCH',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action: 'rename', title: newTitle }),
+      });
+      if (res.ok) { titleEl.textContent = newTitle; }
+      else { titleEl.textContent = current; const d = await res.json(); showSessionBanner(d.detail||'Rename failed.'); }
+    } catch(e) { titleEl.textContent = current; }
+  };
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); inp.blur(); } if (e.key==='Escape') { titleEl.textContent = current; } });
+}
+
+// ── Close ────────────────────────────────────────────────────────────────────
+async function closeSession(sid) {
+  try {
+    const res  = await fetch(`/assistant/sessions/${sid}`, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action: 'close' }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showSessionBanner(data.detail || 'Could not close session.'); return; }
+    // If we closed the active session, clear the chat
+    if (sid === currentSessionId) {
+      currentSessionId = null;
+      localStorage.removeItem('hleo-session');
+      _activeSearchCtx = null;
+      const msgs = document.getElementById('chatMessages');
+      msgs.innerHTML = '';
+      document.getElementById('contextBadge').classList.add('hidden');
+      const welcome = document.createElement('div');
+      welcome.id = 'chatWelcome';
+      welcome.className = 'h-full flex flex-col items-center justify-center text-center py-10';
+      welcome.innerHTML = `<p class="text-sm dark:text-slate-400 text-slate-500">Session closed. Open or create a session to continue.</p>`;
+      msgs.appendChild(welcome);
+    }
+    loadSessions();
+  } catch(e) { showSessionBanner('Network error. Could not close session.'); }
+}
+
+// ── Reopen ───────────────────────────────────────────────────────────────────
+async function reopenSession(sid) {
+  try {
+    const res  = await fetch(`/assistant/sessions/${sid}`, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action: 'reopen' }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showSessionBanner(data.detail || 'Could not reopen session.'); return; }
+    await loadSessions();
+    openSession(sid);
+  } catch(e) { showSessionBanner('Network error. Could not reopen session.'); }
+}
+
+// ── Delete ───────────────────────────────────────────────────────────────────
+async function deleteSession(sid) {
+  if (!confirm('Permanently delete this session and all its messages? This cannot be undone.')) return;
+  try {
+    const res = await fetch(`/assistant/sessions/${sid}`, { method: 'DELETE' });
+    if (!res.ok) { const d = await res.json(); showSessionBanner(d.detail||'Delete failed.'); return; }
+    if (sid === currentSessionId) {
+      currentSessionId = null;
+      localStorage.removeItem('hleo-session');
+      _activeSearchCtx = null;
+      const msgs = document.getElementById('chatMessages');
+      msgs.innerHTML = '';
+      document.getElementById('contextBadge').classList.add('hidden');
+      const welcome = document.createElement('div');
+      welcome.id = 'chatWelcome';
+      welcome.className = 'h-full flex flex-col items-center justify-center text-center py-10';
+      welcome.innerHTML = `<p class="text-sm dark:text-slate-400 text-slate-500">Session deleted. Open or create a session to continue.</p>`;
+      msgs.appendChild(welcome);
+    }
+    loadSessions();
+  } catch(e) { showSessionBanner('Network error. Could not delete session.'); }
+}
 
 function appendBubble(role, content, ctxCount=0) {
   const welcome = document.getElementById('chatWelcome');
@@ -1777,19 +2030,34 @@ async function sendMessage(text) {
         session_id:     currentSessionId,
         message:        text,
         language:       currentLang,
-        search_context: _activeSearchCtx,   // Feature 002: active search context
+        search_context: _activeSearchCtx,   // Feature 002/003: session-scoped search context
       }),
     });
     document.getElementById('typingIndicator')?.remove();
+
+    // Handle closed-session or limit errors gracefully
+    if (res.status === 409) {
+      const d = await res.json();
+      appendBubble('assistant', `⚠️ ${d.detail || 'Session unavailable.'}`);
+      loadSessions();
+      return;
+    }
     if (!res.ok) throw new Error(`Server error ${res.status}`);
+
     const data = await res.json();
     if (data.error) { appendBubble('assistant', `⚠️ ${data.error}`); return; }
-    currentSessionId = data.session_id;
-    localStorage.setItem('hleo-session', currentSessionId);
+
+    // Bind session_id on first message of a new session
+    if (!currentSessionId) {
+      currentSessionId = data.session_id;
+      localStorage.setItem('hleo-session', currentSessionId);
+    }
+
     appendBubble('assistant', data.response, data.context_used_count||0);
     if (data.context_used_count > 0) {
       document.getElementById('contextBadge').classList.remove('hidden');
-      document.getElementById('contextBadgeText').textContent = `${data.context_used_count} database record${data.context_used_count!==1?'s':''} used as context`;
+      document.getElementById('contextBadgeText').textContent =
+        `${data.context_used_count} database record${data.context_used_count!==1?'s':''} used as context`;
     }
     scrollChat();
     loadSessions();

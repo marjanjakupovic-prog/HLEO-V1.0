@@ -283,13 +283,21 @@ class SourceAttribution(Base):
 class ChatSession(Base):
     __tablename__ = "hleo_chat_sessions"
 
-    id         = Column(Integer, primary_key=True, index=True)
-    session_id = Column(String, unique=True, index=True)
-    title      = Column(String)                    # first user message (truncated)
-    created_at = Column(
+    id             = Column(Integer, primary_key=True, index=True)
+    session_id     = Column(String, unique=True, index=True)
+    title          = Column(String)
+    status         = Column(String, default="active")       # "active" | "closed"
+    search_query   = Column(Text, nullable=True)            # human-readable query
+    search_context = Column(JSON, nullable=True)            # serialised SearchContext dict
+    created_at     = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
     )
+    updated_at     = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+    closed_at      = Column(DateTime(timezone=True), nullable=True)
 
 
 class ChatMessage(Base):

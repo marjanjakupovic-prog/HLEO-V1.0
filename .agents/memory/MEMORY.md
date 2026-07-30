@@ -2,3 +2,4 @@
 - [Reddit API block](reddit-api-block.md) — Reddit public JSON API returns 403 from Replit; needs OAuth PRAW integration or Pushshift alternative
 - [Query Orchestrator](query-orchestrator.md) — Feature 001 v1: language detect + translate via gpt-4o-mini before every collector call; stateless, cached, extensible
 - [Context-Aware Assistant](context-aware-assistant.md) — Feature 002: ChatRequest carries optional SearchContext; system prompt uses 3-priority order (search articles → HLEO DB → general knowledge)
+- [Session Management](session-management.md) — Feature 003: ChatSession extended with 5 columns; schema added via ALTER TABLE (create_all won't add cols to existing tables); 5 new endpoints; backend enforces isolation and limits
