@@ -636,68 +636,81 @@ def assistant_chat(
     ]
 
     # ── RAG: retrieve relevant context from DB ──────────────────────
+    # Skip entirely when current search articles are available — the retrieved
+    # scientific literature is the sole primary source in that case.
+    # DB records are only fetched (and injected) when there are no search articles.
     user_msg_lower = body.message.lower()
-    context_snippets = []
-    context_episode_ids = []
+    context_snippets: list = []
+    context_episode_ids: list = []
 
-    # Search clinical profiles
-    cp_rows = db.execute(
-        select(ClinicalProfile)
-        .order_by(desc(ClinicalProfile.processed_at))
-        .limit(30)
-    ).scalars().all()
+    _has_search_articles_early = bool(
+        effective_search_ctx and effective_search_ctx.articles
+    )
 
-    for cp in cp_rows:
-        vp = cp.validation_payload or {}
-        title = vp.get("title", "").lower()
-        payload = cp.extracted_payload or {}
-        # Simple relevance: check if any key term overlaps
-        payload_text = _json.dumps(payload).lower()
-        if any(word in title or word in payload_text
-               for word in user_msg_lower.split() if len(word) > 3):
-            diag     = ", ".join(payload.get("diagnosis", [])[:3])
-            treats   = ", ".join(payload.get("treatments", [])[:4])
-            outcomes = ", ".join(payload.get("outcomes", [])[:3])
-            ev_level = payload.get("evidence_level", "")
-            snippet  = (
-                f"[Clinical Profile — {cp.user_id.upper()}, {vp.get('pub_year','')}] "
-                f"'{vp.get('title','')[:100]}'"
-                f"{f' ({ev_level})' if ev_level else ''}\n"
-                f"  Diagnosis: {diag or 'N/A'}\n"
-                f"  Treatments: {treats or 'N/A'}\n"
-                f"  Outcomes: {outcomes or 'N/A'}"
-            )
-            context_snippets.append(snippet)
-            context_episode_ids.append(cp.episode_id)
-            if len(context_snippets) >= 5:
-                break
+    if _has_search_articles_early:
+        import logging as _logging
+        _logging.getLogger(__name__).info(
+            "RAG skipped: %d search article(s) present — HLEO DB not injected into prompt.",
+            len(effective_search_ctx.articles),
+        )
+    else:
+        # Search clinical profiles
+        cp_rows = db.execute(
+            select(ClinicalProfile)
+            .order_by(desc(ClinicalProfile.processed_at))
+            .limit(30)
+        ).scalars().all()
 
-    # Search patient experiences
-    pe_rows = db.execute(
-        select(PatientExperience)
-        .order_by(desc(PatientExperience.ingested_at))
-        .limit(30)
-    ).scalars().all()
+        for cp in cp_rows:
+            vp = cp.validation_payload or {}
+            title = vp.get("title", "").lower()
+            payload = cp.extracted_payload or {}
+            payload_text = _json.dumps(payload).lower()
+            if any(word in title or word in payload_text
+                   for word in user_msg_lower.split() if len(word) > 3):
+                diag     = ", ".join(payload.get("diagnosis", [])[:3])
+                treats   = ", ".join(payload.get("treatments", [])[:4])
+                outcomes = ", ".join(payload.get("outcomes", [])[:3])
+                ev_level = payload.get("evidence_level", "")
+                snippet  = (
+                    f"[Clinical Profile — {cp.user_id.upper()}, {vp.get('pub_year','')}] "
+                    f"'{vp.get('title','')[:100]}'"
+                    f"{f' ({ev_level})' if ev_level else ''}\n"
+                    f"  Diagnosis: {diag or 'N/A'}\n"
+                    f"  Treatments: {treats or 'N/A'}\n"
+                    f"  Outcomes: {outcomes or 'N/A'}"
+                )
+                context_snippets.append(snippet)
+                context_episode_ids.append(cp.episode_id)
+                if len(context_snippets) >= 5:
+                    break
 
-    for pe in pe_rows:
-        p = pe.extracted_profile or {}
-        payload_text = _json.dumps(p).lower()
-        if any(word in payload_text for word in user_msg_lower.split() if len(word) > 3):
-            condition = p.get("condition", "unknown condition")
-            summary   = p.get("experience_summary", "")
-            treats    = ", ".join(p.get("treatments_tried", [])[:3])
-            outcomes  = ", ".join(p.get("reported_outcomes", [])[:3])
-            snippet   = (
-                f"[Patient Experience — Reddit]\n"
-                f"  Condition: {condition}\n"
-                f"  Summary: {summary[:200] if summary else 'N/A'}\n"
-                f"  Treatments tried: {treats or 'N/A'}\n"
-                f"  Reported outcomes: {outcomes or 'N/A'}"
-            )
-            context_snippets.append(snippet)
-            context_episode_ids.append(pe.episode_id)
-            if len(context_snippets) >= 8:
-                break
+        # Search patient experiences
+        pe_rows = db.execute(
+            select(PatientExperience)
+            .order_by(desc(PatientExperience.ingested_at))
+            .limit(30)
+        ).scalars().all()
+
+        for pe in pe_rows:
+            p = pe.extracted_profile or {}
+            payload_text = _json.dumps(p).lower()
+            if any(word in payload_text for word in user_msg_lower.split() if len(word) > 3):
+                condition = p.get("condition", "unknown condition")
+                summary   = p.get("experience_summary", "")
+                treats    = ", ".join(p.get("treatments_tried", [])[:3])
+                outcomes  = ", ".join(p.get("reported_outcomes", [])[:3])
+                snippet   = (
+                    f"[Patient Experience — Reddit]\n"
+                    f"  Condition: {condition}\n"
+                    f"  Summary: {summary[:200] if summary else 'N/A'}\n"
+                    f"  Treatments tried: {treats or 'N/A'}\n"
+                    f"  Reported outcomes: {outcomes or 'N/A'}"
+                )
+                context_snippets.append(snippet)
+                context_episode_ids.append(pe.episode_id)
+                if len(context_snippets) >= 8:
+                    break
 
     # ── Build system prompt ─────────────────────────────────────────
 
@@ -801,18 +814,11 @@ def assistant_chat(
         )
 
     # ── Priority 2: HLEO database (RAG) ────────────────────────────────
-    # When current search articles are present they are the SOLE primary source.
-    # The DB is suppressed to a gap-fill note so it cannot contaminate the
-    # Clinical Conclusion, Evidence Summary, or Key Studies sections.
+    # context_snippets is empty when search articles are present (RAG was skipped above).
     if has_search_articles:
-        # Suppress DB content entirely; only allow it as an explicit gap-fill
+        # RAG was not run — no DB content to show.
         db_header = (
-            f"══ PRIORITY 2 — HLEO DATABASE (suppressed — {len(context_snippets)} records available) ══\n"
-            "HLEO DB records are SUPPRESSED because current search articles are present.\n"
-            "DO NOT use HLEO DB data in Clinical Conclusion, Evidence Summary, or Key Studies.\n"
-            "You MAY reference HLEO DB only inside the 'General Medical Knowledge' section "
-            "and ONLY if the search articles above leave a clinically important unanswered gap. "
-            "Label any such reference explicitly as '[HLEO DB]'.\n"
+            "══ PRIORITY 2 — HLEO DATABASE (not used — search articles present) ══\n"
             "══════════════════════════════════════════"
         )
     else:
