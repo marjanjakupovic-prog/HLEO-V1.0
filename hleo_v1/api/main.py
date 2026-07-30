@@ -683,16 +683,33 @@ def assistant_chat(
             )
         search_block = (
             f"══ PRIORITY 1 — CURRENT SEARCH RESULTS{lang_note_query} ══\n"
-            f"{len(sc.articles)} article(s) retrieved:\n\n"
+            f"{len(sc.articles)} article(s) retrieved from the user's active search:\n\n"
             + "\n\n".join(art_lines)
             + "\n\n"
-            "INSTRUCTION: Base your answer primarily on these articles. "
-            "When referencing them, use phrases such as:\n"
-            "  • 'Nei risultati della tua ricerca...' / 'In the search results...'\n"
-            "  • 'In base agli studi recuperati...' / 'Based on the retrieved studies...'\n"
-            "  • 'Ho analizzato gli articoli trovati nella ricerca corrente...'\n"
-            "NEVER open with 'In general...', 'Generally...', or 'Normalmente...' "
-            "when these search results are available.\n"
+            "══ MANDATORY RESPONSE FORMAT (applies whenever these articles are present) ══\n"
+            "You MUST structure your reply in exactly these four sections, in this order:\n\n"
+            "## 📋 Ricerca eseguita\n"
+            f"State that {len(sc.articles)} article(s) were retrieved from "
+            f"{len(set(a.source for a in sc.articles))} source(s) "
+            f"({', '.join(sorted(set({'pubmed':'PubMed','europepmc':'Europe PMC','clinicaltrials':'ClinicalTrials.gov'}.get(a.source, a.source) for a in sc.articles)))}). "
+            "Include the query used. This section must be 1–2 sentences only.\n\n"
+            "## 🔬 Evidenze principali\n"
+            "List 3–5 key findings drawn DIRECTLY from the abstracts above. "
+            "Each finding must cite its source in brackets, e.g. '[PubMed – Article 2]'. "
+            "Do NOT paraphrase from general knowledge; every bullet must trace back to one of the articles listed above.\n\n"
+            "## 🩺 Sintesi clinica\n"
+            "Write a clinical synthesis (3–5 sentences) that integrates the findings above into a coherent clinical picture. "
+            "This section must be built exclusively on the retrieved evidence. "
+            "Do not introduce facts that are not supported by the articles listed above.\n\n"
+            "## ℹ️ Conoscenze supplementari (solo se necessario)\n"
+            "Include this section ONLY if the articles above leave an important clinical gap. "
+            "If included, open with the exact phrase: "
+            "'Le seguenti informazioni non provengono dalla ricerca corrente ma da conoscenze mediche generali:' "
+            "If the articles above are sufficient, OMIT this section entirely.\n\n"
+            "CRITICAL RULES:\n"
+            "- NEVER open your response with 'In generale...', 'Generally...', or any generic framing.\n"
+            "- NEVER produce a response that could have been written without the articles above.\n"
+            "- The user must be able to verify every claim in sections 2 and 3 against the listed articles.\n"
             "══════════════════════════════════════════\n"
         )
     elif sc:
@@ -739,7 +756,8 @@ def assistant_chat(
         "- Cite the source (e.g. '[PubMed]', '[Europe PMC]', '[HLEO DB]') when referencing data.\n"
         "- Acknowledge uncertainty; never overstate evidence.\n"
         "- Recommend consulting a qualified clinician for personal medical decisions.\n"
-        "- Are concise (3–6 sentences unless detail is specifically requested).\n\n"
+        "- Follow the MANDATORY RESPONSE FORMAT defined in Priority 1 when search results are present; "
+        "otherwise be concise (3–6 sentences).\n\n"
         f"{search_block}"
         f"{db_header}\n\n"
         f"{p3_note}"
@@ -754,8 +772,8 @@ def assistant_chat(
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=llm_messages,
-        temperature=0.3,
-        max_tokens=800,
+        temperature=0.2,
+        max_tokens=1800 if has_search_articles else 800,
     )
     assistant_text = response.choices[0].message.content
 
