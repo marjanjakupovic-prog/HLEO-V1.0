@@ -1866,19 +1866,22 @@ async function openSession(sid) {
     if (!res.ok) throw new Error(`${res.status}`);
     const data = await res.json();
 
-    // ── Session isolation: restore THIS session's search context ────
-    // Completely replaces _activeSearchCtx so the AI only sees this session's context.
-    if (data.search_context) {
+    // ── Session context: prefer live search over stored session context ──
+    // _activeSearchCtx = what the user just searched for in THIS browser tab.
+    // Only fall back to the session's stored context when no live context exists.
+    // Never overwrite a live search context with a potentially stale session record.
+    if (!_activeSearchCtx && data.search_context) {
       _activeSearchCtx = data.search_context;
-      const badge = document.getElementById('contextBadge');
-      const badgeTxt = document.getElementById('contextBadgeText');
-      const artCount = data.search_context.articles?.length || 0;
-      if (artCount > 0) {
-        badgeTxt.textContent = `${artCount} article${artCount!==1?'s':''} in search context — "${data.search_query||''}"`;
-        badge.classList.remove('hidden');
-      }
+    }
+    // Always sync the context badge to whichever context is now active
+    const badge    = document.getElementById('contextBadge');
+    const badgeTxt = document.getElementById('contextBadgeText');
+    const artCount = _activeSearchCtx?.articles?.length || 0;
+    if (artCount > 0) {
+      badgeTxt.textContent = `${artCount} article${artCount!==1?'s':''} in search context — "${_activeSearchCtx.original_query||''}"`;
+      badge.classList.remove('hidden');
     } else {
-      _activeSearchCtx = null;
+      badge.classList.add('hidden');
     }
 
     if (data.messages.length === 0) {
@@ -1909,8 +1912,8 @@ document.getElementById('newSessionBtn').addEventListener('click', async () => {
       showSessionBanner(data.detail || 'Could not create session.');
       return;
     }
-    // Clear any active search context — new session = clean slate
-    _activeSearchCtx = null;
+    // Keep _activeSearchCtx — a new session should inherit the current search.
+    // The user just searched and wants to discuss those results; don't discard them.
     currentSessionId = data.session_id;
     localStorage.setItem('hleo-session', data.session_id);
     const msgs = document.getElementById('chatMessages');
