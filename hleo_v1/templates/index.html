@@ -1091,13 +1091,22 @@ document.getElementById('themeToggle').addEventListener('click', () => {
 // ─── Page routing ────────────────────────────────────────────────────────────
 const pages = ['search','profiles','experiences','assistant','partners'];
 function showPage(name) {
+  activePage = name;   // keep global in sync
   pages.forEach(p => {
     document.getElementById(`page-${p}`).classList.toggle('hidden', p !== name);
   });
   document.querySelectorAll('.nav-tab').forEach(t => {
     t.classList.toggle('active', t.dataset.page === name);
   });
-  if (name === 'profiles')    loadProfiles();
+
+  if (name === 'search') {
+    // Never leave the search skeleton visible when no request is in-flight
+    if (!_searchInProgress) {
+      document.getElementById('skeleton').classList.add('hidden');
+    }
+  }
+  // Only (re)fetch profiles when the data is actually stale, not on every navigation
+  if (name === 'profiles' && _profilesDirty) loadProfiles();
   if (name === 'experiences') loadExperiences();
   if (name === 'assistant')   loadSessions();
   if (name === 'partners')    loadRwePartners();
@@ -1131,8 +1140,13 @@ let allSearchResults = [];
 let activeFilter = 'all';
 let lastQuery = '';
 // Feature 002: holds the active search context forwarded to the AI assistant
-let _activeSearchCtx       = null;
+let _activeSearchCtx         = null;
 let _currentSearchEpisodeIds = null;  // null = no search yet; [] = search run, pipeline pending; [ids] = filtered
+
+// ── Global navigation + loading-state flags ──────────────────────────────────
+let activePage       = 'search';   // tracks the currently visible tab (global, updated by showPage)
+let _searchInProgress = false;      // true only while a /search fetch is in-flight
+let _profilesDirty    = true;       // true = profiles must be (re)fetched on next navigation to Profiles
 
 function normResults(data) {
   const out = [];
@@ -1211,14 +1225,14 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
   document.getElementById('searchResults').innerHTML = '';
   document.getElementById('skeleton').classList.remove('hidden');
   document.getElementById('searchActionBar').classList.add('hidden');
-  // Reset profile scope — new search invalidates any previous pipeline results
+  // Mark profiles as needing a new pipeline run — clear the episode_id scope
+  // but do NOT reset the counter/badge yet (that happens after pipeline completes)
   _currentSearchEpisodeIds = [];
-  if (activePage === 'profiles') loadProfiles();
+  _searchInProgress = true;
 
   try {
     const res  = await fetch(`/search?q=${encodeURIComponent(q)}`);
     if (!res.ok) throw new Error(`Server error ${res.status}`);
-    const data = await res.json();
     allSearchResults = normResults(data);
 
     // Feature 002: capture search context for the AI assistant
@@ -1257,6 +1271,8 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
   } catch(err) {
     document.getElementById('skeleton').classList.add('hidden');
     showBanner('searchBanner', `Error: ${esc(err.message)}`);
+  } finally {
+    _searchInProgress = false;
   }
 });
 
@@ -1278,8 +1294,9 @@ document.getElementById('runPipelineBtn').addEventListener('click', async () => 
     if (err) msg += `, ${err} ${t('banner_errors')}`;
     msg += `. <button onclick="showPage('profiles')" class="underline ml-1">${t('banner_view_profiles')}</button>`;
     showBanner('searchBanner', msg, 'success');
-    // Scope profiles view to this search only
+    // Scope profiles view to this search only; mark dirty so nav refreshes it
     _currentSearchEpisodeIds = data.episode_ids || [];
+    _profilesDirty = true;
     if (activePage === 'profiles') loadProfiles();
     refreshNavCounts();
   } catch(err) {
@@ -1618,6 +1635,7 @@ async function loadProfiles() {
     const res  = await fetch(url);
     const data = await res.json();
     skel.classList.add('hidden');
+    _profilesDirty = false;   // data is now current — suppress re-fetch on next navigation
     document.getElementById('profilesTotalBadge').textContent = data.total ? `${data.total} profile${data.total!==1?'s':''}` : '';
     document.getElementById('profilesNavCount').textContent   = data.total ? `(${data.total})` : '';
     if (!data.profiles?.length) { empty.classList.remove('hidden'); return; }
