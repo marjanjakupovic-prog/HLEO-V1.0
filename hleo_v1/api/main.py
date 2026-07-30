@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import FastAPI, Depends, Query, Request, Body, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -45,6 +46,18 @@ _orchestrator = QueryOrchestrator()
 _translate_cache: dict = {}
 
 app = FastAPI(title="HLEO API", version="1.0.0")
+
+# Allow the Replit preview proxy (and any origin) to send cross-origin POST/PATCH/DELETE
+# requests with JSON bodies.  The preflight OPTIONS was returning 405 and blocking all
+# fetch() calls from the browser.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 Base.metadata.create_all(bind=engine)
 app.include_router(rwe_router)
 
