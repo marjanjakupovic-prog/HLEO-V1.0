@@ -69,6 +69,13 @@ class HLEOPipeline:
                     key, winner_src, loser_src,
                 )
 
+        # ── Clinical re-ranking ───────────────────────────────────────────────
+        # Score every scientific article with clinical_rank() and sort each
+        # per-source list by score descending.  Reddit is never touched.
+        # This is the only mutation between dedup and returning the result dict.
+        from core.ranker import rank_articles
+        rank_articles(deduped)
+
         return deduped
 
     def process(self, query: str) -> list:

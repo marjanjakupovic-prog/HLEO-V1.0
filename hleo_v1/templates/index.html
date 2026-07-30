@@ -1154,6 +1154,13 @@ function normResults(data) {
   (data.europepmc||[]).forEach(a => out.push({type:'europepmc', data:a}));
   (data.clinicaltrials||[]).forEach(t => out.push({type:'clinicaltrials', data:t}));
   (data.reddit||[]).forEach(p => out.push({type:'reddit', data:p}));
+  // Global clinical re-ranking: sort scientific articles by backend score desc.
+  // Reddit posts are pinned after all scientific results regardless of score.
+  out.sort((a, b) => {
+    const aIsReddit = a.type === 'reddit', bIsReddit = b.type === 'reddit';
+    if (aIsReddit !== bIsReddit) return aIsReddit ? 1 : -1;
+    return (b.data.score || 0) - (a.data.score || 0);
+  });
   return out;
 }
 
