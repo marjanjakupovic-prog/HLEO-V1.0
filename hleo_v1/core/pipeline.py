@@ -41,9 +41,9 @@ class HLEOPipeline:
            but with cross-source duplicates removed (winning copy only retained).
         """
         reddit_posts       = self.collector.search(query, limit=10)
-        pubmed_articles    = self.pubmed.search(query, limit=3)
-        europepmc_articles = self.europepmc.search(query, limit=3)
-        clinical_trials    = self.clinicaltrials.search(query, limit=3)
+        pubmed_articles    = self.pubmed.search(query, limit=20)
+        europepmc_articles = self.europepmc.search(query, limit=15)
+        clinical_trials    = self.clinicaltrials.search(query, limit=10)
 
         raw = {
             "reddit":         reddit_posts,
