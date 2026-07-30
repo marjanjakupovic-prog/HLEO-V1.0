@@ -35,6 +35,9 @@ from core.models import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Simple in-memory translation cache (avoids re-calling LLM for identical text+lang pairs)
+_translate_cache: dict = {}
+
 app = FastAPI(title="HLEO API", version="1.0.0")
 Base.metadata.create_all(bind=engine)
 
@@ -490,6 +493,7 @@ def list_experiences(
 class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     message: str
+    language: Optional[str] = "en"   # ISO 639-1 code, e.g. "en" / "it"
 
 
 @app.post("/assistant/chat")
@@ -605,6 +609,17 @@ def assistant_chat(
         else "No relevant records found in the database for this query."
     )
 
+    _LANG_MAP = {
+        "it": "Italian", "en": "English", "fr": "French",
+        "de": "German",  "es": "Spanish", "pt": "Portuguese",
+    }
+    _resp_lang  = _LANG_MAP.get(body.language or "en", "English")
+    _lang_note  = (
+        f"\n\nIMPORTANT: You must respond entirely in {_resp_lang}. "
+        f"All your answers, labels, and explanations must be written in {_resp_lang}."
+        if _resp_lang != "English" else ""
+    )
+
     system_prompt = (
         "You are HLEO Clinical Assistant, an AI that helps clinicians and researchers "
         "understand evidence from scientific literature and patient-reported experiences.\n\n"
@@ -619,6 +634,7 @@ def assistant_chat(
         "─────────────────────────────────────\n"
         f"{context_block}\n"
         "─────────────────────────────────────"
+        f"{_lang_note}"
     )
 
     # ── Call LLM ───────────────────────────────────────────────────
@@ -677,6 +693,76 @@ def get_session(session_id: str, db: Session = Depends(get_db)):
             for m in messages
         ],
     }
+
+
+# ── Translation endpoint ──────────────────────────────────────────────────────
+
+class TranslateRequest(BaseModel):
+    text: str
+    target_lang: str = "it"
+    content_type: str = "clinical_article"   # clinical_article | patient_experience | general
+
+
+@app.post("/translate")
+async def translate_text(body: TranslateRequest):
+    """
+    AI translation endpoint used by the frontend language switcher.
+    Accepts {text, target_lang, content_type}.
+    Returns  {translation, summary, target_lang, content_type}.
+    Results are cached in _translate_cache (process lifetime) to avoid re-calling the LLM.
+    """
+    import os, json as _json, hashlib
+
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if not api_key:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="OPENAI_API_KEY not configured.")
+
+    cache_key = hashlib.md5(
+        f"{body.target_lang}:{body.content_type}:{body.text[:500]}".encode()
+    ).hexdigest()
+    if cache_key in _translate_cache:
+        return _translate_cache[cache_key]
+
+    LANG_NAMES = {
+        "it": "Italian",    "en": "English",   "fr": "French",
+        "de": "German",     "es": "Spanish",   "pt": "Portuguese",
+        "zh": "Chinese",    "ja": "Japanese",  "ar": "Arabic",
+        "ru": "Russian",    "nl": "Dutch",     "pl": "Polish",
+    }
+    lang_name     = LANG_NAMES.get(body.target_lang, body.target_lang)
+    content_label = body.content_type.replace("_", " ")
+
+    prompt = (
+        f"You are a professional medical translator and summariser.\n\n"
+        f"Translate the following {content_label} text to {lang_name}, "
+        f"preserving all medical terminology accurately. "
+        f"Also provide a concise summary in {lang_name} (2-3 sentences max).\n\n"
+        f"TEXT:\n{body.text[:3000]}\n\n"
+        "Respond with JSON only:\n"
+        '{"translation": "...", "summary": "..."}'
+    )
+
+    from openai import OpenAI
+    client = OpenAI(api_key=api_key)
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+        response_format={"type": "json_object"},
+        max_tokens=1500,
+        temperature=0.2,
+    )
+
+    result = _json.loads(response.choices[0].message.content)
+    out = {
+        "translation":  result.get("translation", ""),
+        "summary":      result.get("summary", ""),
+        "target_lang":  body.target_lang,
+        "content_type": body.content_type,
+    }
+    _translate_cache[cache_key] = out
+    logger.info(f"Translated {len(body.text)} chars to {lang_name} ({body.content_type})")
+    return out
 
 
 @app.get("/assistant/sessions")

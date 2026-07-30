@@ -108,6 +108,29 @@
     .typing-dot:nth-child(2) { animation-delay:.2s; }
     .typing-dot:nth-child(3) { animation-delay:.4s; }
     @keyframes blink { 0%,80%,100%{opacity:.2;} 40%{opacity:1;} }
+    /* ── Language switcher ── */
+    .lang-switcher { display:flex; align-items:center; gap:.15rem; padding:.2rem; border:1px solid; border-radius:.5rem; }
+    html.dark  .lang-switcher { border-color:#21262d; }
+    html.light .lang-switcher { border-color:#e2e8f0; }
+    .lang-btn { padding:.2rem .45rem; font-size:.7rem; font-weight:600; border-radius:.3rem; cursor:pointer; transition:all .15s; background:transparent; border:none; line-height:1; }
+    html.dark  .lang-btn { color:#64748b; }
+    html.dark  .lang-btn:hover { color:#e2e8f0; background:#21262d; }
+    html.light .lang-btn { color:#94a3b8; }
+    html.light .lang-btn:hover { color:#1e293b; background:#f1f5f9; }
+    .lang-btn-active { background:#3b82f6 !important; color:#fff !important; }
+    /* ── Translate button ── */
+    .translate-btn { display:inline-flex; align-items:center; gap:.3rem; font-size:.7rem; font-weight:500; padding:.25rem .65rem; border-radius:.375rem; border:1px solid; cursor:pointer; transition:all .15s; background:transparent; }
+    html.dark  .translate-btn { border-color:#30363d; color:#4b5563; }
+    html.dark  .translate-btn:hover:not(:disabled) { border-color:#3b82f6; color:#60a5fa; background:rgba(59,130,246,.06); }
+    html.light .translate-btn { border-color:#e2e8f0; color:#94a3b8; }
+    html.light .translate-btn:hover:not(:disabled) { border-color:#3b82f6; color:#3b82f6; }
+    .translate-btn:disabled { opacity:.45; cursor:not-allowed; }
+    /* Hide translate buttons when English UI is selected */
+    html.lang-en .translate-btn { display:none !important; }
+    /* Translation panel inside cards */
+    .transl-panel { margin-top:.75rem; padding-top:.75rem; border-top:1px solid; }
+    html.dark  .transl-panel { border-color:#21262d; }
+    html.light .transl-panel { border-color:#f1f5f9; }
   </style>
 </head>
 
@@ -124,32 +147,37 @@
         </svg>
       </div>
       <span class="font-semibold text-sm tracking-wide">HLEO</span>
-      <span class="hidden sm:inline text-xs dark:text-slate-500 text-slate-400">Clinical Research</span>
+      <span class="hidden sm:inline text-xs dark:text-slate-500 text-slate-400" data-i18n="nav_brand">Clinical Research</span>
     </div>
 
     <!-- Nav tabs -->
     <div class="flex items-center gap-1 overflow-x-auto" id="mainNav">
       <button class="nav-tab active" data-page="search">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-        Search
+        <span data-i18n="nav_search">Search</span>
       </button>
       <button class="nav-tab" data-page="profiles">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z"/></svg>
-        Profiles <span id="profilesNavCount" class="text-xs opacity-60 ml-0.5"></span>
+        <span data-i18n="nav_profiles">Profiles</span> <span id="profilesNavCount" class="text-xs opacity-60 ml-0.5"></span>
       </button>
       <button class="nav-tab" data-page="experiences">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
-        Experiences <span id="expNavCount" class="text-xs opacity-60 ml-0.5"></span>
+        <span data-i18n="nav_experiences">Experiences</span> <span id="expNavCount" class="text-xs opacity-60 ml-0.5"></span>
       </button>
       <button class="nav-tab" data-page="assistant">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
-        AI Assistant
+        <span data-i18n="nav_assistant">AI Assistant</span>
       </button>
     </div>
 
     <!-- Right actions -->
     <div class="flex items-center gap-1.5 flex-shrink-0">
-      <a href="/docs" target="_blank" class="hidden sm:inline text-xs dark:text-slate-500 text-slate-400 hover:text-brand-400 transition-colors px-2">API</a>
+      <a href="/docs" target="_blank" class="hidden sm:inline text-xs dark:text-slate-500 text-slate-400 hover:text-brand-400 transition-colors px-2" data-i18n="nav_api">API</a>
+      <!-- Language switcher -->
+      <div class="lang-switcher" aria-label="Language">
+        <button class="lang-btn lang-btn-active" data-lang="en" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" data-lang="it" onclick="setLang('it')">IT</button>
+      </div>
       <button id="themeToggle" aria-label="Toggle theme"
         class="w-8 h-8 rounded-lg flex items-center justify-center dark:hover:bg-surface-hover hover:bg-slate-100 transition-colors">
         <svg class="w-4 h-4 dark:text-slate-400 text-slate-500 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/></svg>
@@ -166,16 +194,17 @@
 <div id="page-search">
   <!-- Hero -->
   <div class="text-center pt-14 pb-10">
-    <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mb-2">Clinical Research Search</h1>
-    <p class="dark:text-slate-400 text-slate-500 text-sm mb-8">PubMed · Europe PMC · ClinicalTrials.gov · Reddit</p>
+    <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mb-2" data-i18n="search_hero_title">Clinical Research Search</h1>
+    <p class="dark:text-slate-400 text-slate-500 text-sm mb-8" data-i18n="search_hero_subtitle">PubMed · Europe PMC · ClinicalTrials.gov · Reddit</p>
     <form id="searchForm" class="max-w-2xl mx-auto">
       <div class="search-ring flex items-center gap-2 dark:bg-surface-card bg-white dark:border-surface-border border-slate-200 border rounded-xl px-4 py-3 shadow-sm">
         <svg class="w-4 h-4 flex-shrink-0 dark:text-slate-500 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
         <input id="searchInput" type="text" placeholder="e.g. finasteride alopecia, BRCA1 cancer…" autocomplete="off"
+          data-i18n-ph="search_placeholder"
           class="flex-1 bg-transparent outline-none text-sm dark:text-slate-100 text-slate-800 dark:placeholder-slate-500 placeholder-slate-400"/>
         <button type="submit"
           class="px-4 py-1.5 bg-brand-500 hover:bg-brand-600 active:bg-brand-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 flex-shrink-0">
-          Search
+          <span data-i18n="search_btn">Search</span>
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
         </button>
       </div>
@@ -185,23 +214,23 @@
   <!-- Action bar -->
   <div id="searchActionBar" class="hidden mb-5 flex flex-wrap items-center justify-between gap-3">
     <div class="flex items-center gap-2 flex-wrap">
-      <span class="text-xs dark:text-slate-500 text-slate-400 font-medium">Filter:</span>
-      <button class="filter-btn active" data-source="all">All <span id="cnt-all" class="ml-1 opacity-70"></span></button>
+      <span class="text-xs dark:text-slate-500 text-slate-400 font-medium" data-i18n="search_filter_label">Filter:</span>
+      <button class="filter-btn active" data-source="all"><span data-i18n="search_filter_all">All</span> <span id="cnt-all" class="ml-1 opacity-70"></span></button>
       <button class="filter-btn" data-source="pubmed">PubMed <span id="cnt-pubmed" class="ml-1 opacity-70"></span></button>
       <button class="filter-btn" data-source="europepmc">Europe PMC <span id="cnt-europepmc" class="ml-1 opacity-70"></span></button>
-      <button class="filter-btn" data-source="clinicaltrials">ClinicalTrials <span id="cnt-clinicaltrials" class="ml-1 opacity-70"></span></button>
+      <button class="filter-btn" data-source="clinicaltrials"><span data-i18n="search_filter_clinicaltrials">ClinicalTrials</span> <span id="cnt-clinicaltrials" class="ml-1 opacity-70"></span></button>
       <button class="filter-btn" data-source="reddit">Reddit <span id="cnt-reddit" class="ml-1 opacity-70"></span></button>
     </div>
     <div class="flex gap-2 flex-wrap">
       <button id="runPipelineBtn"
         class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg>
-        <span id="pipelineBtnLabel">Extract articles (LLM)</span>
+        <span id="pipelineBtnLabel" data-i18n="search_btn_extract_articles">Extract articles (LLM)</span>
       </button>
       <button id="runExperiencesBtn"
         class="px-4 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
-        <span id="expBtnLabel">Extract experiences (LLM)</span>
+        <span id="expBtnLabel" data-i18n="search_btn_extract_experiences">Extract experiences (LLM)</span>
       </button>
     </div>
   </div>
@@ -214,15 +243,15 @@
     <div class="skeleton rounded-xl h-24"></div>
   </div>
   <div id="searchResults" class="space-y-3"></div>
-  <div id="searchEmpty" class="hidden text-center py-20 dark:text-slate-500 text-slate-400 text-sm">No results found.</div>
+  <div id="searchEmpty" class="hidden text-center py-20 dark:text-slate-500 text-slate-400 text-sm" data-i18n="search_no_results">No results found.</div>
 </div><!-- /page-search -->
 
 <!-- ──────────────────── PROFILES PAGE ──────────────────── -->
 <div id="page-profiles" class="hidden pt-8">
   <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
     <div>
-      <h2 class="text-xl font-bold">Clinical Profiles</h2>
-      <p class="text-sm dark:text-slate-400 text-slate-500 mt-0.5">LLM-extracted from scientific articles</p>
+      <h2 class="text-xl font-bold" data-i18n="profiles_title">Clinical Profiles</h2>
+      <p class="text-sm dark:text-slate-400 text-slate-500 mt-0.5" data-i18n="profiles_subtitle">LLM-extracted from scientific articles</p>
     </div>
     <span id="profilesTotalBadge" class="text-xs dark:text-slate-500 text-slate-400"></span>
   </div>
@@ -231,15 +260,15 @@
     <div class="skeleton rounded-xl h-40"></div>
   </div>
   <div id="profilesList" class="space-y-3"></div>
-  <div id="profilesEmpty" class="hidden text-center py-20 dark:text-slate-500 text-slate-400 text-sm">No profiles yet. Run <strong>Extract articles (LLM)</strong> after a search.</div>
+  <div id="profilesEmpty" class="hidden text-center py-20 dark:text-slate-500 text-slate-400 text-sm" data-i18n-html="profiles_empty">No profiles yet. Run <strong>Extract articles (LLM)</strong> after a search.</div>
 </div>
 
 <!-- ──────────────────── EXPERIENCES PAGE ──────────────────── -->
 <div id="page-experiences" class="hidden pt-8">
   <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
     <div>
-      <h2 class="text-xl font-bold">Patient Experiences</h2>
-      <p class="text-sm dark:text-slate-400 text-slate-500 mt-0.5">Structured insights from patient-reported posts</p>
+      <h2 class="text-xl font-bold" data-i18n="experiences_title">Patient Experiences</h2>
+      <p class="text-sm dark:text-slate-400 text-slate-500 mt-0.5" data-i18n="experiences_subtitle">Structured insights from patient-reported posts</p>
     </div>
     <span id="expTotalBadge" class="text-xs dark:text-slate-500 text-slate-400"></span>
   </div>
@@ -282,9 +311,9 @@
     <!-- Sessions sidebar -->
     <aside class="lg:w-56 flex-shrink-0 flex flex-col gap-2">
       <div class="flex items-center justify-between mb-1">
-        <span class="text-xs font-semibold uppercase tracking-wider dark:text-slate-500 text-slate-400">Sessions</span>
+        <span class="text-xs font-semibold uppercase tracking-wider dark:text-slate-500 text-slate-400" data-i18n="assistant_sessions_label">Sessions</span>
         <button id="newSessionBtn"
-          class="text-xs px-2.5 py-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-colors">New</button>
+          class="text-xs px-2.5 py-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-colors" data-i18n="assistant_new_session">New</button>
       </div>
       <div id="sessionList" class="space-y-1 overflow-y-auto flex-1"></div>
     </aside>
@@ -302,8 +331,8 @@
           <div class="w-14 h-14 rounded-2xl bg-brand-500/15 flex items-center justify-center mb-4">
             <svg class="w-7 h-7 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
           </div>
-          <h3 class="font-semibold text-base mb-1">AI Clinical Assistant</h3>
-          <p class="text-sm dark:text-slate-400 text-slate-500 max-w-xs">Ask questions about clinical profiles and patient experiences in the database. Answers are grounded in retrieved records.</p>
+          <h3 class="font-semibold text-base mb-1" data-i18n="assistant_welcome_title">AI Clinical Assistant</h3>
+          <p class="text-sm dark:text-slate-400 text-slate-500 max-w-xs" data-i18n="assistant_welcome_subtitle">Ask questions about clinical profiles and patient experiences in the database. Answers are grounded in retrieved records.</p>
           <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-sm w-full text-left">
             <button class="suggestion-chip" onclick="sendSuggestion(this)">What treatments are documented for alopecia?</button>
             <button class="suggestion-chip" onclick="sendSuggestion(this)">Summarise side effects from patient reports</button>
@@ -315,7 +344,7 @@
       <!-- Input -->
       <div class="p-3 dark:border-surface-border border-slate-200 border-t">
         <div class="flex gap-2 items-end">
-          <textarea id="chatInput" rows="1" placeholder="Ask about clinical evidence or patient experiences…"
+          <textarea id="chatInput" rows="1" placeholder="Ask about clinical evidence or patient experiences…" data-i18n-ph="assistant_placeholder"
             class="flex-1 bg-transparent dark:text-slate-100 text-slate-800 text-sm outline-none resize-none dark:placeholder-slate-500 placeholder-slate-400 py-1.5 max-h-32 overflow-y-auto"
             style="field-sizing:content;"></textarea>
           <button id="chatSendBtn"
@@ -323,7 +352,7 @@
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.269 20.876L5.999 12zm0 0h7.5"/></svg>
           </button>
         </div>
-        <p class="text-xs dark:text-slate-600 text-slate-300 mt-1.5">Responses are grounded in your database. Always consult a qualified clinician for personal medical advice.</p>
+        <p class="text-xs dark:text-slate-600 text-slate-300 mt-1.5" data-i18n="assistant_disclaimer">Responses are grounded in your database. Always consult a qualified clinician for personal medical advice.</p>
       </div>
     </div>
   </div>
@@ -349,6 +378,268 @@
 const html = document.documentElement;
 function esc(s) {
   return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════ INTERNATIONALISATION (i18n) ═════════════════════════════
+// To add a language: duplicate one of the locale blocks below with a new key.
+// Static HTML uses data-i18n="key", data-i18n-html="key", data-i18n-ph="key".
+// Dynamic JS uses t('key').
+const TRANSLATIONS = {
+  en: {
+    nav_brand:"Clinical Research",
+    nav_search:"Search", nav_profiles:"Profiles",
+    nav_experiences:"Experiences", nav_assistant:"AI Assistant", nav_api:"API",
+    search_hero_title:"Clinical Research Search",
+    search_hero_subtitle:"PubMed \u00b7 Europe PMC \u00b7 ClinicalTrials.gov \u00b7 Reddit",
+    search_placeholder:"e.g. finasteride alopecia, BRCA1 cancer\u2026",
+    search_btn:"Search",
+    search_filter_label:"Filter:",
+    search_filter_all:"All",
+    search_filter_clinicaltrials:"ClinicalTrials",
+    search_btn_extract_articles:"Extract articles (LLM)",
+    search_btn_extract_experiences:"Extract experiences (LLM)",
+    search_no_results:"No results found.",
+    search_llm_disabled:"\u2139\ufe0f LLM key not configured \u2014 search-only mode.",
+    search_running:"Running\u2026",
+    banner_article_complete:"Article extraction complete",
+    banner_profiles_saved:"profiles saved",
+    banner_already_existed:"already existed",
+    banner_errors:"errors",
+    banner_view_profiles:"View profiles \u2192",
+    banner_exp_complete:"Experience extraction complete",
+    banner_exp_saved:"experiences saved",
+    banner_exp_skipped:"skipped",
+    banner_view_experiences:"View experiences \u2192",
+    profiles_title:"Clinical Profiles",
+    profiles_subtitle:"LLM-extracted from scientific articles",
+    profiles_empty:"No profiles yet. Run <strong>Extract articles (LLM)</strong> after a search.",
+    profile_section_diagnosis:"Diagnosis",
+    profile_section_treatments:"Treatments & Dosages",
+    profile_section_outcomes:"Outcomes",
+    profile_section_adverse:"Adverse Events",
+    profile_section_triggers:"Triggers & Symptoms",
+    profile_section_labs:"Laboratory & Biopsy Findings",
+    profile_section_timeline:"Timeline",
+    profile_no_data:"No structured clinical data could be extracted from this abstract.",
+    card_dev_mode:"Developer mode",
+    card_dev_mode_desc:"Raw extracted JSON \u2014 for debugging and integration use only.",
+    card_open_source:"Open source",
+    experiences_title:"Patient Experiences",
+    experiences_subtitle:"Structured insights from patient-reported posts",
+    exp_badge_label:"Patient Experience",
+    exp_confidence:"confidence",
+    exp_field_condition:"Condition", exp_field_duration:"Duration",
+    exp_field_treatments:"Treatments tried", exp_field_current:"Current",
+    exp_field_outcomes:"Outcomes", exp_field_side_effects:"Side effects",
+    exp_field_emotional:"Emotional impact", exp_field_age_sex:"Age / Sex",
+    exp_field_unmet_needs:"Unmet needs",
+    exp_reddit_source:"Reddit source \u2197",
+    exp_empty_default_title:"No patient experiences yet",
+    exp_empty_default_body:"Search for a topic, then click <strong>Extract experiences (LLM)</strong> to collect and analyse Reddit posts.",
+    exp_empty_setup_title:"Setup steps to connect Reddit:",
+    exp_empty_no_creds_title:"Reddit not connected",
+    exp_empty_no_creds_body:"Add <strong>REDDIT_CLIENT_ID</strong> and <strong>REDDIT_CLIENT_SECRET</strong> as Replit Secrets (Settings \u2192 Secrets). Register a free Reddit script app at <a href=\"https://www.reddit.com/prefs/apps\" target=\"_blank\" class=\"underline\">reddit.com/prefs/apps</a> \u2014 takes about 60 seconds.",
+    exp_empty_auth_error_title:"Reddit authentication failed",
+    exp_empty_auth_error_body:"The credentials on file were rejected. Check that <strong>REDDIT_CLIENT_ID</strong> and <strong>REDDIT_CLIENT_SECRET</strong> are correct and the app type is <em>script</em>.",
+    exp_empty_rate_limited_title:"Reddit rate limit reached",
+    exp_empty_rate_limited_body:"Too many requests. Wait 60 seconds and try again.",
+    exp_empty_no_results_title:"No Reddit posts found",
+    exp_empty_network_error_title:"Could not reach Reddit",
+    exp_empty_network_error_body:"Network error connecting to Reddit\u2019s API. Check the server connection.",
+    exp_empty_no_openai_title:"LLM extraction disabled",
+    exp_empty_no_openai_body:"Set the <strong>OPENAI_API_KEY</strong> Replit Secret to enable patient experience extraction.",
+    assistant_sessions_label:"Sessions",
+    assistant_new_session:"New",
+    assistant_welcome_title:"AI Clinical Assistant",
+    assistant_welcome_subtitle:"Ask questions about clinical profiles and patient experiences in the database. Answers are grounded in retrieved records.",
+    assistant_placeholder:"Ask about clinical evidence or patient experiences\u2026",
+    assistant_disclaimer:"Responses are grounded in your database. Always consult a qualified clinician for personal medical advice.",
+    assistant_records_used:"records referenced",
+    assistant_suggestion_1:"What treatments are documented for alopecia?",
+    assistant_suggestion_2:"Summarise side effects from patient reports",
+    assistant_suggestion_3:"What evidence levels are in the database?",
+    assistant_suggestion_4:"Compare outcomes across sources",
+    translate_btn:"\uD83C\uDF10 Translate",
+    translate_loading:"Translating\u2026",
+    translate_hide:"Hide translation",
+    translate_show:"Show translation",
+    translate_panel_label:"AI Translation",
+    translate_summary_label:"Summary",
+    translate_error:"Translation failed",
+    lang_en:"EN", lang_it:"IT",
+  },
+  it: {
+    nav_brand:"Ricerca Clinica",
+    nav_search:"Ricerca", nav_profiles:"Profili",
+    nav_experiences:"Esperienze", nav_assistant:"Assistente IA", nav_api:"API",
+    search_hero_title:"Ricerca Clinica",
+    search_hero_subtitle:"PubMed \u00b7 Europe PMC \u00b7 ClinicalTrials.gov \u00b7 Reddit",
+    search_placeholder:"es. finasteride alopecia, cancro BRCA1\u2026",
+    search_btn:"Cerca",
+    search_filter_label:"Filtra:",
+    search_filter_all:"Tutti",
+    search_filter_clinicaltrials:"Studi Clinici",
+    search_btn_extract_articles:"Estrai articoli (LLM)",
+    search_btn_extract_experiences:"Estrai esperienze (LLM)",
+    search_no_results:"Nessun risultato trovato.",
+    search_llm_disabled:"\u2139\ufe0f Chiave LLM non configurata \u2014 solo modalit\u00e0 ricerca.",
+    search_running:"In corso\u2026",
+    banner_article_complete:"Estrazione articoli completata",
+    banner_profiles_saved:"profili salvati",
+    banner_already_existed:"gi\u00e0 presenti",
+    banner_errors:"errori",
+    banner_view_profiles:"Visualizza profili \u2192",
+    banner_exp_complete:"Estrazione esperienze completata",
+    banner_exp_saved:"esperienze salvate",
+    banner_exp_skipped:"ignorate",
+    banner_view_experiences:"Visualizza esperienze \u2192",
+    profiles_title:"Profili Clinici",
+    profiles_subtitle:"Estratti con LLM da articoli scientifici",
+    profiles_empty:"Nessun profilo. Esegui <strong>Estrai articoli (LLM)</strong> dopo una ricerca.",
+    profile_section_diagnosis:"Diagnosi",
+    profile_section_treatments:"Trattamenti e Dosaggi",
+    profile_section_outcomes:"Risultati",
+    profile_section_adverse:"Effetti Avversi",
+    profile_section_triggers:"Fattori Scatenanti e Sintomi",
+    profile_section_labs:"Risultati di Laboratorio e Biopsia",
+    profile_section_timeline:"Cronologia",
+    profile_no_data:"Nessun dato clinico strutturato estratto da questo abstract.",
+    card_dev_mode:"Modalit\u00e0 sviluppatore",
+    card_dev_mode_desc:"JSON estratto grezzo \u2014 solo per debug e integrazione.",
+    card_open_source:"Apri fonte",
+    experiences_title:"Esperienze dei Pazienti",
+    experiences_subtitle:"Sintesi strutturate da post di pazienti",
+    exp_badge_label:"Esperienza del Paziente",
+    exp_confidence:"affidabilit\u00e0",
+    exp_field_condition:"Condizione", exp_field_duration:"Durata",
+    exp_field_treatments:"Trattamenti provati", exp_field_current:"Attuale",
+    exp_field_outcomes:"Risultati", exp_field_side_effects:"Effetti collaterali",
+    exp_field_emotional:"Impatto emotivo", exp_field_age_sex:"Et\u00e0 / Sesso",
+    exp_field_unmet_needs:"Bisogni insoddisfatti",
+    exp_reddit_source:"Fonte Reddit \u2197",
+    exp_empty_default_title:"Nessuna esperienza ancora",
+    exp_empty_default_body:"Cerca un argomento, poi clicca su <strong>Estrai esperienze (LLM)</strong> per raccogliere e analizzare i post da Reddit.",
+    exp_empty_setup_title:"Passaggi per connettere Reddit:",
+    exp_empty_no_creds_title:"Reddit non connesso",
+    exp_empty_no_creds_body:"Aggiungi <strong>REDDIT_CLIENT_ID</strong> e <strong>REDDIT_CLIENT_SECRET</strong> come Segreti Replit (Impostazioni \u2192 Segreti). Registra un app Reddit gratuita su <a href=\"https://www.reddit.com/prefs/apps\" target=\"_blank\" class=\"underline\">reddit.com/prefs/apps</a>.",
+    exp_empty_auth_error_title:"Autenticazione Reddit fallita",
+    exp_empty_auth_error_body:"Le credenziali presenti sono state rifiutate. Verifica che <strong>REDDIT_CLIENT_ID</strong> e <strong>REDDIT_CLIENT_SECRET</strong> siano corretti e il tipo di app sia <em>script</em>.",
+    exp_empty_rate_limited_title:"Limite richieste Reddit raggiunto",
+    exp_empty_rate_limited_body:"Troppe richieste. Aspetta 60 secondi e riprova.",
+    exp_empty_no_results_title:"Nessun post Reddit trovato",
+    exp_empty_network_error_title:"Impossibile raggiungere Reddit",
+    exp_empty_network_error_body:"Errore di rete connettendo all\u2019API di Reddit. Verifica la connessione del server.",
+    exp_empty_no_openai_title:"Estrazione LLM disabilitata",
+    exp_empty_no_openai_body:"Imposta il Segreto Replit <strong>OPENAI_API_KEY</strong> per abilitare l\u2019estrazione delle esperienze dei pazienti.",
+    assistant_sessions_label:"Sessioni",
+    assistant_new_session:"Nuova",
+    assistant_welcome_title:"Assistente Clinico IA",
+    assistant_welcome_subtitle:"Fai domande sui profili clinici e le esperienze dei pazienti nel database. Le risposte sono basate sui dati recuperati.",
+    assistant_placeholder:"Chiedi informazioni su evidenze cliniche o esperienze dei pazienti\u2026",
+    assistant_disclaimer:"Le risposte si basano sul tuo database. Consulta sempre un clinico qualificato per consigli medici personali.",
+    assistant_records_used:"record utilizzati",
+    assistant_suggestion_1:"Quali trattamenti sono documentati per l\u2019alopecia?",
+    assistant_suggestion_2:"Riassumi gli effetti collaterali dalle segnalazioni dei pazienti",
+    assistant_suggestion_3:"Quali livelli di evidenza ci sono nel database?",
+    assistant_suggestion_4:"Confronta i risultati tra le fonti",
+    translate_btn:"\uD83C\uDF10 Traduci",
+    translate_loading:"Traduzione in corso\u2026",
+    translate_hide:"Nascondi traduzione",
+    translate_show:"Mostra traduzione",
+    translate_panel_label:"Traduzione IA",
+    translate_summary_label:"Riepilogo",
+    translate_error:"Traduzione non riuscita",
+    lang_en:"EN", lang_it:"IT",
+  },
+};
+
+// ── i18n core ─────────────────────────────────────────────────────────────────
+let currentLang = localStorage.getItem('hleo-lang') || 'en';
+function t(key) { return TRANSLATIONS[currentLang]?.[key] ?? TRANSLATIONS.en[key] ?? key; }
+
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    if (!el.children.length) el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    el.innerHTML = t(el.dataset.i18nHtml);
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPh);
+  });
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('lang-btn-active', btn.dataset.lang === currentLang);
+  });
+  html.classList.toggle('lang-en', currentLang === 'en');
+}
+
+function setLang(code) {
+  if (!TRANSLATIONS[code]) return;
+  currentLang = code;
+  localStorage.setItem('hleo-lang', code);
+  applyTranslations();
+  const activePage = document.querySelector('.nav-tab.active')?.dataset.page;
+  if (activePage === 'profiles')    loadProfiles();
+  if (activePage === 'experiences') loadExperiences();
+  if (activePage === 'search' && allSearchResults.length) renderSearch();
+}
+
+// ── Per-card on-demand translation ────────────────────────────────────────────
+let _cardReg = {}, _cardId = 0;
+function _regCard(text, ctype) { const id = ++_cardId; _cardReg[id] = {text, ctype}; return id; }
+const _translCache = new Map();   // key: "lang:cardId"
+
+async function translateCard(btn) {
+  const id   = btn.dataset.cardId;
+  const info = _cardReg[id];
+  if (!info) return;
+  const panel = btn.parentElement.nextElementSibling;
+  if (!panel.classList.contains('hidden')) {
+    panel.classList.add('hidden');
+    btn.textContent = t('translate_btn');
+    return;
+  }
+  const ckey = currentLang + ':' + id;
+  if (_translCache.has(ckey)) {
+    _renderTranslPanel(panel, _translCache.get(ckey));
+    panel.classList.remove('hidden');
+    btn.textContent = t('translate_hide');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = t('translate_loading');
+  try {
+    const res  = await fetch('/translate', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({text: info.text, target_lang: currentLang, content_type: info.ctype}),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    _translCache.set(ckey, data);
+    _renderTranslPanel(panel, data);
+    panel.classList.remove('hidden');
+    btn.textContent = t('translate_hide');
+  } catch(e) {
+    panel.innerHTML = `<p class="text-xs text-red-400 p-3">${t('translate_error')}: ${esc(e.message)}</p>`;
+    panel.classList.remove('hidden');
+    btn.textContent = t('translate_btn');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function _renderTranslPanel(panel, data) {
+  const LNAMES = {it:'Italiano',en:'English',fr:'Fran\u00e7ais',de:'Deutsch',es:'Espa\u00f1ol',pt:'Portugu\u00eas'};
+  const lname  = LNAMES[data.target_lang] || data.target_lang;
+  panel.innerHTML =
+    `<div class="transl-panel px-5 pb-4 text-xs">
+      <div class="flex items-center gap-1.5 mb-2">
+        <span class="font-semibold dark:text-slate-300 text-slate-600">&#x1f310; ${esc(lname)}</span>
+        <span class="dark:text-slate-600 text-slate-400">&middot; ${t('translate_panel_label')}</span>
+      </div>
+      ${data.translation ? `<p class="dark:text-slate-300 text-slate-600 leading-relaxed mb-2">${esc(data.translation)}</p>` : ''}
+      ${data.summary    ? `<p class="dark:text-slate-400 text-slate-500 italic"><strong>${t('translate_summary_label')}:</strong> ${esc(data.summary)}</p>` : ''}
+    </div>`;
 }
 
 // ─── Theme ──────────────────────────────────────────────────────────────────
@@ -434,11 +725,17 @@ function buildSearchCard(item) {
   }
   if (type==='reddit' && r.author) metaParts.push(`u/${esc(r.author)}`);
 
+  const _fullText = `${r.title || ''}\n\n${r.abstract || r.text || ''}`.trim();
+  const _cid = _regCard(_fullText, 'clinical_article');
   return `<article class="result-card rounded-xl border dark:bg-surface-card dark:border-surface-border bg-white border-slate-200 p-5 animate-slide-up" data-source="${type}">
     <div class="flex items-start gap-2 mb-2.5">${badge(color, LABEL[type])}</div>
     <h3 class="text-sm font-semibold dark:text-slate-100 text-slate-800 leading-snug mb-1.5">${titleHtml}</h3>
     ${abs ? `<p class="text-xs dark:text-slate-400 text-slate-500 line-clamp-2 italic mb-2">${esc(abs)}…</p>` : ''}
     ${metaParts.length ? `<div class="flex flex-wrap gap-x-3 gap-y-1 text-xs dark:text-slate-500 text-slate-400">${metaParts.join('<span class="opacity-30">·</span>')}</div>` : ''}
+    <div class="mt-3">
+      <button class="translate-btn" data-card-id="${_cid}" onclick="translateCard(this)">${t('translate_btn')}</button>
+    </div>
+    <div class="hidden"></div>
   </article>`;
 }
 
@@ -508,10 +805,10 @@ document.getElementById('runPipelineBtn').addEventListener('click', async () => 
     const data = await res.json();
     if (data.error) { showBanner('searchBanner', `⚠️ ${esc(data.error)}`, 'warn'); return; }
     const n = data.saved, e = data.already_existed, err = data.errors;
-    let msg = `✅ Article extraction complete — <strong>${n} profile${n!==1?'s':''} saved</strong>`;
-    if (e)   msg += `, ${e} already existed`;
-    if (err) msg += `, ${err} error${err!==1?'s':''}`;
-    msg += `. <button onclick="showPage('profiles')" class="underline ml-1">View profiles →</button>`;
+    let msg = `\u2705 ${t('banner_article_complete')} \u2014 <strong>${n} ${t('banner_profiles_saved')}</strong>`;
+    if (e)   msg += `, ${e} ${t('banner_already_existed')}`;
+    if (err) msg += `, ${err} ${t('banner_errors')}`;
+    msg += `. <button onclick="showPage('profiles')" class="underline ml-1">${t('banner_view_profiles')}</button>`;
     showBanner('searchBanner', msg, 'success');
     refreshNavCounts();
   } catch(err) {
@@ -521,47 +818,14 @@ document.getElementById('runPipelineBtn').addEventListener('click', async () => 
   }
 });
 
-// ── Reddit status → human-readable UI message ────────────────────────────
+// ── Reddit status → i18n UI message ─────────────────────────────────────────
 const REDDIT_STATUS_UI = {
-  no_credentials: {
-    icon: '🔑',
-    type: 'warn',
-    title: 'Reddit not connected',
-    body: 'Add <strong>REDDIT_CLIENT_ID</strong> and <strong>REDDIT_CLIENT_SECRET</strong> as Replit Secrets (Settings → Secrets). ' +
-          'Register a free Reddit script app at <a href="https://www.reddit.com/prefs/apps" target="_blank" class="underline">reddit.com/prefs/apps</a> — ' +
-          'takes about 60 seconds.',
-  },
-  auth_error: {
-    icon: '🚫',
-    type: 'error',
-    title: 'Reddit authentication failed',
-    body: 'The credentials on file were rejected. Check that <strong>REDDIT_CLIENT_ID</strong> and <strong>REDDIT_CLIENT_SECRET</strong> ' +
-          'are copied correctly and that the app type is <em>script</em>.',
-  },
-  rate_limited: {
-    icon: '⏱️',
-    type: 'warn',
-    title: 'Reddit rate limit reached',
-    body: 'Too many requests in a short window. Wait 60 seconds and try again.',
-  },
-  no_results: {
-    icon: '🔍',
-    type: 'warn',
-    title: 'No Reddit posts found',
-    body: null, // filled from data.reddit_reason
-  },
-  network_error: {
-    icon: '📡',
-    type: 'error',
-    title: 'Could not reach Reddit',
-    body: "Network error connecting to Reddit\u2019s API. Check the server connection and retry.",
-  },
-  no_openai_key: {
-    icon: '🤖',
-    type: 'warn',
-    title: 'LLM extraction disabled',
-    body: 'Set the <strong>OPENAI_API_KEY</strong> Replit Secret to enable patient experience extraction.',
-  },
+  no_credentials: { icon:'\uD83D\uDD11', type:'warn',  titleKey:'exp_empty_no_creds_title',    bodyKey:'exp_empty_no_creds_body' },
+  auth_error:     { icon:'\uD83D\uDEAB', type:'error', titleKey:'exp_empty_auth_error_title',   bodyKey:'exp_empty_auth_error_body' },
+  rate_limited:   { icon:'\u23F1\uFE0F', type:'warn',  titleKey:'exp_empty_rate_limited_title', bodyKey:'exp_empty_rate_limited_body' },
+  no_results:     { icon:'\uD83D\uDD0D', type:'warn',  titleKey:'exp_empty_no_results_title',   bodyKey:null },
+  network_error:  { icon:'\uD83D\uDCE1', type:'error', titleKey:'exp_empty_network_error_title',bodyKey:'exp_empty_network_error_body' },
+  no_openai_key:  { icon:'\uD83E\uDD16', type:'warn',  titleKey:'exp_empty_no_openai_title',    bodyKey:'exp_empty_no_openai_body' },
 };
 
 function redditStatusBanner(data) {
@@ -569,10 +833,10 @@ function redditStatusBanner(data) {
   if (!status || status === 'ok') return null;
   const ui = REDDIT_STATUS_UI[status];
   if (!ui) return null;
-  const bodyText = ui.body || esc(data.reddit_reason || '');
+  const bodyText = ui.bodyKey ? t(ui.bodyKey) : esc(data.reddit_reason || '');
   return {
     type: ui.type,
-    html: `<strong>${ui.icon} ${ui.title}:</strong> ${bodyText}`,
+    html: `<strong>${ui.icon} ${t(ui.titleKey)}:</strong> ${bodyText}`,
   };
 }
 
@@ -599,10 +863,10 @@ document.getElementById('runExperiencesBtn').addEventListener('click', async () 
 
     // Success path
     const n = data.saved, e = data.already_existed, err = data.errors;
-    let msg = `✅ Experience extraction complete — <strong>${n} experience${n!==1?'s':''} saved</strong>`;
-    if (e)   msg += `, ${e} already existed`;
-    if (err) msg += `, ${err} skipped`;
-    msg += `. <button onclick="showPage('experiences')" class="underline ml-1">View experiences →</button>`;
+    let msg = `\u2705 ${t('banner_exp_complete')} \u2014 <strong>${n} ${t('banner_exp_saved')}</strong>`;
+    if (e)   msg += `, ${e} ${t('banner_already_existed')}`;
+    if (err) msg += `, ${err} ${t('banner_exp_skipped')}`;
+    msg += `. <button onclick="showPage('experiences')" class="underline ml-1">${t('banner_view_experiences')}</button>`;
     showBanner('searchBanner', msg, 'success');
     refreshNavCounts();
   } catch(err) {
@@ -683,7 +947,7 @@ function buildAttributionHtml(attr, p) {
           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border transition-colors
                  dark:border-surface-border dark:text-slate-400 dark:hover:text-brand-400 dark:hover:border-brand-500
                  border-slate-200 text-slate-500 hover:text-brand-500 hover:border-brand-400 text-xs font-medium">
-        ${ICONS.external} Open source
+        ${ICONS.external} ${esc(t('card_open_source'))}
       </a>`
     : '';
 
@@ -738,7 +1002,7 @@ function buildProfileCard(p) {
   // ── Diagnosis ──────────────────────────────────────────────────────────
   if (diagnosis.length) {
     sections += `<div class="cp-section">
-      <div class="cp-section-label">${ICONS.diagnosis} Diagnosis</div>
+      <div class="cp-section-label">${ICONS.diagnosis} ${esc(t('profile_section_diagnosis'))}</div>
       ${chipRow(diagnosis, 'cp-chip-diag')}
     </div>`;
   }
@@ -746,7 +1010,7 @@ function buildProfileCard(p) {
   // ── Treatments & Dosages ───────────────────────────────────────────────
   if (treatments.length) {
     sections += `<div class="cp-section">
-      <div class="cp-section-label">${ICONS.treatments} Treatments &amp; Dosages</div>
+      <div class="cp-section-label">${ICONS.treatments} ${esc(t('profile_section_treatments'))}</div>
       ${treatmentRow(treatments, dosages, treatment_duration)}
     </div>`;
   }
@@ -759,23 +1023,23 @@ function buildProfileCard(p) {
       sections += `<div class="cp-section">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <div class="cp-section-label">${ICONS.outcomes} Outcomes</div>
+            <div class="cp-section-label">${ICONS.outcomes} ${esc(t('profile_section_outcomes'))}</div>
             ${chipRow(outcomes, 'cp-chip-out')}
           </div>
           <div>
-            <div class="cp-section-label">${ICONS.adverse} Adverse Events</div>
+            <div class="cp-section-label">${ICONS.adverse} ${esc(t('profile_section_adverse'))}</div>
             ${chipRow(adverse_effects, 'cp-chip-ae')}
           </div>
         </div>
       </div>`;
     } else if (hasOut) {
       sections += `<div class="cp-section">
-        <div class="cp-section-label">${ICONS.outcomes} Outcomes</div>
+        <div class="cp-section-label">${ICONS.outcomes} ${esc(t('profile_section_outcomes'))}</div>
         ${chipRow(outcomes, 'cp-chip-out')}
       </div>`;
     } else {
       sections += `<div class="cp-section">
-        <div class="cp-section-label">${ICONS.adverse} Adverse Events</div>
+        <div class="cp-section-label">${ICONS.adverse} ${esc(t('profile_section_adverse'))}</div>
         ${chipRow(adverse_effects, 'cp-chip-ae')}
       </div>`;
     }
@@ -787,7 +1051,7 @@ function buildProfileCard(p) {
     sections += `<div class="cp-section">
       <div class="cp-section-label">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
-        Triggers &amp; Symptoms
+        ${esc(t('profile_section_triggers'))}
       </div>
       ${chipRow(trigAndSym, 'cp-chip-lab')}
     </div>`;
@@ -797,7 +1061,7 @@ function buildProfileCard(p) {
   const labItems = [...lab_findings, ...biopsy_findings].filter(Boolean);
   if (labItems.length) {
     sections += `<div class="cp-section">
-      <div class="cp-section-label">${ICONS.labs} Laboratory &amp; Biopsy Findings</div>
+      <div class="cp-section-label">${ICONS.labs} ${esc(t('profile_section_labs'))}</div>
       ${chipRow(labItems, 'cp-chip-lab')}
     </div>`;
   }
@@ -805,9 +1069,9 @@ function buildProfileCard(p) {
     sections += `<div class="cp-section">
       <div class="cp-section-label">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        Timeline
+        ${esc(t('profile_section_timeline'))}
       </div>
-      <ol class="space-y-1">${timeline.map(t => `<li class="flex gap-2 text-xs dark:text-slate-400 text-slate-600"><span class="mt-1 w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0"></span>${esc(t)}</li>`).join('')}</ol>
+      <ol class="space-y-1">${timeline.map(tl => `<li class="flex gap-2 text-xs dark:text-slate-400 text-slate-600"><span class="mt-1 w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0"></span>${esc(tl)}</li>`).join('')}</ol>
     </div>`;
   }
 
@@ -815,7 +1079,7 @@ function buildProfileCard(p) {
   if (!hasContent) {
     sections = `<div class="cp-section">
       <p class="text-xs dark:text-slate-500 text-slate-400 italic">
-        No structured clinical data could be extracted from this abstract.
+        ${esc(t('profile_no_data'))}
       </p>
     </div>`;
   }
@@ -847,11 +1111,11 @@ function buildProfileCard(p) {
     <details class="border-t dark:border-surface-border border-slate-100">
       <summary class="devmode-toggle mx-5 my-2.5">
         ${ICONS.code}
-        Developer mode
+        ${esc(t('card_dev_mode'))}
         <svg class="chev w-3 h-3 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
       </summary>
       <div class="px-5 pb-4">
-        <p class="text-xs dark:text-slate-600 text-slate-400 mb-2">Raw extracted JSON — for debugging and integration use only.</p>
+        <p class="text-xs dark:text-slate-600 text-slate-400 mb-2">${esc(t('card_dev_mode_desc'))}</p>
         <pre class="text-xs dark:bg-[#0d1117] bg-slate-50 dark:text-slate-300 text-slate-700 rounded-lg p-3 overflow-x-auto leading-relaxed">${esc(JSON.stringify(prof,null,2))}</pre>
       </div>
     </details>
@@ -891,20 +1155,23 @@ function buildExperienceCard(exp) {
   const date = exp.ingested_at ? new Date(exp.ingested_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
 
   const fields = [
-    ['Condition',       condition],
-    ['Duration',        p.condition_duration],
-    ['Treatments tried', treats],
-    ['Current',         p.current_treatment],
-    ['Outcomes',        outcomes],
-    ['Side effects',    sideEffects],
-    ['Emotional impact', p.emotional_impact],
-    ['Age / Sex',       [p.age, p.sex].filter(Boolean).join(', ')],
+    [t('exp_field_condition'),   condition],
+    [t('exp_field_duration'),    p.condition_duration],
+    [t('exp_field_treatments'),  treats],
+    [t('exp_field_current'),     p.current_treatment],
+    [t('exp_field_outcomes'),    outcomes],
+    [t('exp_field_side_effects'),sideEffects],
+    [t('exp_field_emotional'),   p.emotional_impact],
+    [t('exp_field_age_sex'),     [p.age, p.sex].filter(Boolean).join(', ')],
   ].filter(([,v]) => v);
+
+  const _expText = `${summary}\n\n${quotes.join('\n')}`.trim();
+  const _ecid = _regCard(_expText || p.condition || '', 'patient_experience');
 
   return `<article class="result-card rounded-xl border dark:bg-surface-card dark:border-surface-border bg-white border-slate-200 p-5 animate-slide-up">
     <div class="flex items-start gap-2 mb-2.5 flex-wrap">
-      ${badge('orange','Patient Experience')}
-      ${conf ? `<span class="text-xs font-medium ${confColor}">${esc(conf)} confidence</span>` : ''}
+      ${badge('orange', t('exp_badge_label'))}
+      ${conf ? `<span class="text-xs font-medium ${confColor}">${esc(conf)} ${t('exp_confidence')}</span>` : ''}
       ${exp.query_context ? `<span class="text-xs dark:text-slate-500 text-slate-400">query: "${esc(exp.query_context)}"</span>` : ''}
     </div>
     ${summary ? `<p class="text-sm dark:text-slate-200 text-slate-700 font-medium leading-snug mb-3">${esc(summary)}</p>` : ''}
@@ -918,13 +1185,17 @@ function buildExperienceCard(exp) {
       ${quotes.map(q => `<blockquote class="border-l-2 border-brand-500 pl-3 text-xs dark:text-slate-400 text-slate-500 italic">"${esc(q)}"</blockquote>`).join('')}
     </div>` : ''}
     ${exp.source_url ? `<div class="mt-2 pt-2 dark:border-surface-border border-slate-100 border-t text-xs">
-      <a href="${esc(exp.source_url)}" target="_blank" rel="noopener" class="dark:text-slate-500 text-slate-400 hover:text-brand-400 underline underline-offset-2 transition-colors">Reddit source ↗</a>
+      <a href="${esc(exp.source_url)}" target="_blank" rel="noopener" class="dark:text-slate-500 text-slate-400 hover:text-brand-400 underline underline-offset-2 transition-colors">${t('exp_reddit_source')}</a>
     </div>` : ''}
     ${(p.unmet_needs||[]).length ? `<div class="mt-2">
-      <span class="profile-label dark:text-slate-500 text-slate-400 block mb-1">Unmet needs</span>
+      <span class="profile-label dark:text-slate-500 text-slate-400 block mb-1">${t('exp_field_unmet_needs')}</span>
       <div class="flex flex-wrap gap-1.5">${(p.unmet_needs||[]).map(n=>`<span class="text-xs dark:bg-surface-border bg-slate-100 dark:text-slate-300 text-slate-600 px-2 py-0.5 rounded-full">${esc(n)}</span>`).join('')}</div>
     </div>` : ''}
     ${date ? `<p class="text-xs dark:text-slate-600 text-slate-300 mt-3 text-right">${esc(date)}</p>` : ''}
+    <div class="mt-3">
+      <button class="translate-btn" data-card-id="${_ecid}" onclick="translateCard(this)">${t('translate_btn')}</button>
+    </div>
+    <div class="hidden"></div>
   </article>`;
 }
 
@@ -935,48 +1206,19 @@ function updateExpEmptyState(status, reason) {
   const body  = document.getElementById('expEmptyBody');
   const setup = document.getElementById('expEmptySetup');
 
-  // Map each status to copy
   const copyMap = {
-    no_credentials: {
-      title: 'Reddit not connected',
-      body:  'Add <strong>REDDIT_CLIENT_ID</strong> and <strong>REDDIT_CLIENT_SECRET</strong> as Replit Secrets to collect patient posts.',
-      showSetup: true,
-    },
-    auth_error: {
-      title: 'Reddit authentication failed',
-      body:  'The credentials on file were rejected. Check that REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET are correct and the app type is <em>script</em>.',
-      showSetup: false,
-    },
-    rate_limited: {
-      title: 'Reddit rate limit reached',
-      body:  'Too many requests. Wait 60 seconds and try again.',
-      showSetup: false,
-    },
-    no_results: {
-      title: 'No Reddit posts found',
-      body:  esc(reason || 'No posts matched your query. Try shorter or broader terms.'),
-      showSetup: false,
-    },
-    network_error: {
-      title: 'Could not reach Reddit',
-      body:  "Network error connecting to Reddit\u2019s API. Check the server connection.",
-      showSetup: false,
-    },
-    no_openai_key: {
-      title: 'LLM extraction disabled',
-      body:  'Set the <strong>OPENAI_API_KEY</strong> Replit Secret to enable patient experience extraction.',
-      showSetup: false,
-    },
+    no_credentials: { titleKey:'exp_empty_no_creds_title',    bodyKey:'exp_empty_no_creds_body',    showSetup:true  },
+    auth_error:     { titleKey:'exp_empty_auth_error_title',   bodyKey:'exp_empty_auth_error_body',   showSetup:false },
+    rate_limited:   { titleKey:'exp_empty_rate_limited_title', bodyKey:'exp_empty_rate_limited_body', showSetup:false },
+    no_results:     { titleKey:'exp_empty_no_results_title',   bodyKey:null,                          showSetup:false },
+    network_error:  { titleKey:'exp_empty_network_error_title',bodyKey:'exp_empty_network_error_body',showSetup:false },
+    no_openai_key:  { titleKey:'exp_empty_no_openai_title',    bodyKey:'exp_empty_no_openai_body',    showSetup:false },
   };
 
-  const copy = copyMap[status] || {
-    title: 'No patient experiences yet',
-    body:  'Search for a topic, then click <strong>Extract experiences (LLM)</strong>.',
-    showSetup: false,
-  };
+  const copy = copyMap[status] || { titleKey:'exp_empty_default_title', bodyKey:'exp_empty_default_body', showSetup:false };
 
-  if (title)  title.textContent = copy.title;
-  if (body)   body.innerHTML    = copy.body;
+  if (title)  title.textContent = t(copy.titleKey);
+  if (body)   body.innerHTML    = copy.bodyKey ? t(copy.bodyKey) : esc(reason || t('exp_empty_default_body'));
   if (setup)  setup.classList.toggle('hidden', !copy.showSetup);
   empty.classList.remove('hidden');
 }
@@ -1057,7 +1299,7 @@ function appendBubble(role, content, ctxCount=0) {
       ${esc(content)}
       ${role==='assistant' && ctxCount > 0 ? `<div class="mt-2 pt-2 border-t dark:border-slate-700 border-slate-200 text-xs opacity-60 flex items-center gap-1">
         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
-        ${ctxCount} record${ctxCount!==1?'s':''} referenced
+        ${ctxCount} ${t('assistant_records_used')}
       </div>` : ''}
     </div>`;
   msgs.appendChild(div);
@@ -1092,7 +1334,7 @@ async function sendMessage(text) {
     const res  = await fetch('/assistant/chat', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({session_id: currentSessionId, message: text}),
+      body: JSON.stringify({session_id: currentSessionId, message: text, language: currentLang}),
     });
     document.getElementById('typingIndicator')?.remove();
     if (!res.ok) throw new Error(`Server error ${res.status}`);
@@ -1143,6 +1385,7 @@ async function refreshNavCounts() {
 }
 
 // ─── Init ────────────────────────────────────────────────────────────────────
+applyTranslations();   // apply saved language preference on page load
 refreshNavCounts();
 if (currentSessionId) {
   // pre-load session silently — user can switch to assistant tab
