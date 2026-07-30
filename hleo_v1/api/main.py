@@ -32,9 +32,13 @@ from core.models import (
     PatientExperience, SourceAttribution, ChatSession, ChatMessage,
 )
 from api.partners import router as rwe_router
+from core.orchestrator import QueryOrchestrator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Module-level orchestrator instance (stateless, safe to share across requests)
+_orchestrator = QueryOrchestrator()
 
 # Simple in-memory translation cache (avoids re-calling LLM for identical text+lang pairs)
 _translate_cache: dict = {}
@@ -109,8 +113,12 @@ def stats(db: Session = Depends(get_db)):
 def search(q: str = Query(..., description="Search query")):
     """Collect results from all sources — no LLM, returns raw data immediately."""
     from core.pipeline import HLEOPipeline
+
+    # ── Orchestrate: detect language, translate to scientific English if needed ──
+    orch = _orchestrator.process(q)
+
     pipeline = HLEOPipeline()
-    raw = pipeline.collect(q)
+    raw = pipeline.collect(orch.search_query)
 
     pubmed         = [_to_dict(a) for a in raw["pubmed"]]
     europepmc      = [_to_dict(a) for a in raw["europepmc"]]
@@ -118,7 +126,8 @@ def search(q: str = Query(..., description="Search query")):
     reddit_raw     = [_to_dict(p) for p in raw["reddit"]]
 
     return {
-        "query": q,
+        "query":          q,
+        "orchestration":  orch.to_dict(),
         "llm_extraction": pipeline.extractor.client is not None,
         "totals": {
             "pubmed":         len(pubmed),
@@ -145,13 +154,16 @@ def run_pipeline(q: str = Query(...), db: Session = Depends(get_db)):
     from core.pipeline import HLEOPipeline
     from core.article_extractor import ArticleExtractor
 
+    # ── Orchestrate: detect language, translate to scientific English if needed ──
+    orch = _orchestrator.process(q)
+
     pipeline  = HLEOPipeline()
     extractor = ArticleExtractor()
 
     if extractor.client is None:
         return {"error": "OPENAI_API_KEY not set — cannot run LLM extraction."}
 
-    raw = pipeline.collect(q)
+    raw = pipeline.collect(orch.search_query)
 
     articles = []
     for item in raw["pubmed"]:
@@ -282,6 +294,7 @@ def run_pipeline(q: str = Query(...), db: Session = Depends(get_db)):
 
     return {
         "query":           q,
+        "orchestration":   orch.to_dict(),
         "processed":       len(articles),
         "saved":           len([s for s in saved if s["status"] == "saved"]),
         "already_existed": len([s for s in saved if s["status"] == "already_exists"]),
@@ -371,14 +384,20 @@ def ingest_experiences(q: str = Query(...), db: Session = Depends(get_db)):
             "reddit_reason": "OPENAI_API_KEY is not set — LLM extraction is disabled.",
         }
 
+    # ── Orchestrate: detect language, translate to scientific English if needed ──
+    orch = _orchestrator.process(q)
+
     # ── Collect from Reddit via PRAW ────────────────────────────────────────
     collector = RedditCollector()
-    raw_reddit, reddit_status, reddit_reason = collector.search_with_status(q, limit=15)
-    logger.info(f"Reddit [{reddit_status}] for '{q}': {reddit_reason}")
+    raw_reddit, reddit_status, reddit_reason = collector.search_with_status(
+        orch.search_query, limit=15
+    )
+    logger.info(f"Reddit [{reddit_status}] for '{orch.search_query}': {reddit_reason}")
 
     if reddit_status != STATUS_OK:
         return {
             "query":          q,
+            "orchestration":  orch.to_dict(),
             "collected":      0,
             "saved":          0,
             "already_existed": 0,
@@ -452,6 +471,7 @@ def ingest_experiences(q: str = Query(...), db: Session = Depends(get_db)):
     n_saved = len([s for s in saved if s["status"] == "saved"])
     return {
         "query":           q,
+        "orchestration":   orch.to_dict(),
         "collected":       len(raw_reddit),
         "saved":           n_saved,
         "already_existed": len([s for s in saved if s["status"] == "already_exists"]),

@@ -1,2 +1,3 @@
-- [HLEO architecture](hleo-architecture.md) — four-tab SPA; article pipeline + patient experiences + AI assistant; all wired to managed Postgres
+- [HLEO architecture](hleo-architecture.md) — five-tab SPA; article pipeline + patient experiences + AI assistant + Partner Ecosystem; all wired to managed Postgres
 - [Reddit API block](reddit-api-block.md) — Reddit public JSON API returns 403 from Replit; needs OAuth PRAW integration or Pushshift alternative
+- [Query Orchestrator](query-orchestrator.md) — Feature 001 v1: language detect + translate via gpt-4o-mini before every collector call; stateless, cached, extensible
