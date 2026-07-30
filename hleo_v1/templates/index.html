@@ -131,6 +131,138 @@
     .transl-panel { margin-top:.75rem; padding-top:.75rem; border-top:1px solid; }
     html.dark  .transl-panel { border-color:#21262d; }
     html.light .transl-panel { border-color:#f1f5f9; }
+
+    /* ── RWE / Partner Management System ─────────────────────────────────── */
+    /* Sub-nav tabs */
+    .rwe-tab {
+      padding:.45rem .9rem; font-size:.75rem; font-weight:500; cursor:pointer;
+      border-bottom:2px solid transparent; transition:all .15s; background:none;
+      margin-bottom:-1px; border-radius:0;
+    }
+    html.dark  .rwe-tab { color:#64748b; }
+    html.dark  .rwe-tab:hover  { color:#cbd5e1; border-bottom-color:#30363d; }
+    html.dark  .rwe-tab.active { color:#60a5fa; border-bottom-color:#3b82f6; }
+    html.light .rwe-tab { color:#94a3b8; }
+    html.light .rwe-tab:hover  { color:#475569; border-bottom-color:#e2e8f0; }
+    html.light .rwe-tab.active { color:#3b82f6; border-bottom-color:#3b82f6; }
+
+    /* Partner cards */
+    .partner-card {
+      border-radius:.75rem; border:1px solid;
+      transition:border-color .15s, box-shadow .15s;
+    }
+    html.dark  .partner-card { background:#0d1117; border-color:#21262d; }
+    html.dark  .partner-card:hover { border-color:#30363d; box-shadow:0 0 0 1px #30363d; }
+    html.light .partner-card { background:#fff; border-color:#e2e8f0; }
+    html.light .partner-card:hover { border-color:#cbd5e1; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+
+    /* Lifecycle progress bar */
+    .lc-bar { display:flex; align-items:center; gap:0; overflow:hidden; }
+    .lc-node {
+      width:1.6rem; height:1.6rem; border-radius:50%; display:flex; align-items:center;
+      justify-content:center; font-size:.6rem; font-weight:700; flex-shrink:0;
+      border:1.5px solid; transition:all .2s; position:relative; z-index:1;
+    }
+    .lc-line { flex:1; height:2px; }
+    html.dark  .lc-node.lc-done  { background:#3b82f6; border-color:#3b82f6; color:#fff; }
+    html.dark  .lc-node.lc-curr  { background:#0d1117; border-color:#60a5fa; color:#60a5fa; box-shadow:0 0 0 3px rgba(59,130,246,.2); }
+    html.dark  .lc-node.lc-next  { background:#0d1117; border-color:#21262d; color:#30363d; }
+    html.dark  .lc-line.lc-done  { background:#3b82f6; }
+    html.dark  .lc-line.lc-next  { background:#21262d; }
+    html.light .lc-node.lc-done  { background:#3b82f6; border-color:#3b82f6; color:#fff; }
+    html.light .lc-node.lc-curr  { background:#fff; border-color:#3b82f6; color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.12); }
+    html.light .lc-node.lc-next  { background:#f8fafc; border-color:#e2e8f0; color:#cbd5e1; }
+    html.light .lc-line.lc-done  { background:#3b82f6; }
+    html.light .lc-line.lc-next  { background:#e2e8f0; }
+    .lc-node.lc-declined { background:#ef4444 !important; border-color:#ef4444 !important; color:#fff !important; }
+    .lc-node.lc-disabled { background:#6b7280 !important; border-color:#6b7280 !important; color:#fff !important; }
+
+    /* Source / agreement row cards */
+    .rwe-row-card {
+      border-radius:.625rem; border:1px solid; padding:.875rem 1rem;
+      transition:border-color .15s;
+    }
+    html.dark  .rwe-row-card { background:#0d1117; border-color:#21262d; }
+    html.dark  .rwe-row-card:hover { border-color:#30363d; }
+    html.light .rwe-row-card { background:#fff; border-color:#e2e8f0; }
+    html.light .rwe-row-card:hover { border-color:#cbd5e1; }
+
+    /* Status pills */
+    .rwe-pill {
+      display:inline-flex; align-items:center; gap:.25rem;
+      padding:.15rem .55rem; border-radius:9999px;
+      font-size:.65rem; font-weight:600; line-height:1.4;
+    }
+    .rwe-pill-dot { width:.4rem; height:.4rem; border-radius:50%; }
+    .pill-proposed  { background:rgba(100,116,139,.15); color:#94a3b8; }
+    .pill-contacted { background:rgba(59,130,246,.15);  color:#60a5fa; }
+    .pill-discussion{ background:rgba(14,165,233,.15);  color:#38bdf8; }
+    .pill-legal     { background:rgba(245,158,11,.15);  color:#fbbf24; }
+    .pill-approved  { background:rgba(20,184,166,.15);  color:#2dd4bf; }
+    .pill-active    { background:rgba(34,197,94,.15);   color:#4ade80; }
+    .pill-declined  { background:rgba(239,68,68,.15);   color:#f87171; }
+    .pill-disabled  { background:rgba(107,114,128,.15); color:#9ca3af; }
+    .pill-draft     { background:rgba(100,116,139,.12); color:#94a3b8; }
+    .pill-review    { background:rgba(59,130,246,.15);  color:#60a5fa; }
+    .pill-signed    { background:rgba(20,184,166,.15);  color:#2dd4bf; }
+    .pill-expired   { background:rgba(239,68,68,.12);   color:#f87171; }
+    .pill-auth      { background:rgba(34,197,94,.15);   color:#4ade80; }
+    .pill-unauth    { background:rgba(100,116,139,.12); color:#6b7280; }
+
+    /* RWE Modal */
+    .rwe-modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(4px); z-index:50; }
+    .rwe-modal-box {
+      position:relative; width:100%; max-width:34rem;
+      border-radius:1rem; border:1px solid; overflow:hidden;
+      max-height:90vh; display:flex; flex-direction:column;
+      box-shadow:0 25px 50px rgba(0,0,0,.4);
+    }
+    html.dark  .rwe-modal-box { background:#161b22; border-color:#30363d; }
+    html.light .rwe-modal-box { background:#fff;    border-color:#e2e8f0; }
+
+    /* Form inputs inside modal */
+    .rwe-input {
+      width:100%; padding:.5rem .75rem; border-radius:.5rem; border:1px solid;
+      font-size:.8rem; outline:none; transition:border-color .15s;
+    }
+    html.dark  .rwe-input { background:#0d1117; border-color:#30363d; color:#e6edf3; }
+    html.dark  .rwe-input:focus { border-color:#3b82f6; }
+    html.light .rwe-input { background:#fff; border-color:#e2e8f0; color:#1e293b; }
+    html.light .rwe-input:focus { border-color:#3b82f6; }
+    .rwe-label { display:block; font-size:.7rem; font-weight:500; margin-bottom:.3rem; }
+    html.dark  .rwe-label { color:#8b949e; }
+    html.light .rwe-label { color:#64748b; }
+
+    /* Architecture diagram */
+    .arch-pillar {
+      flex:1; border-radius:.75rem; border:1px solid; padding:1.25rem 1rem;
+      display:flex; flex-direction:column; gap:.625rem; min-width:0;
+    }
+    html.dark  .arch-pillar { background:#0d1117; border-color:#21262d; }
+    html.light .arch-pillar { background:#f8fafc; border-color:#e2e8f0; }
+    .arch-engine {
+      flex:1.2; border-radius:.75rem; border:2px solid #3b82f6;
+      padding:1.25rem 1rem; display:flex; flex-direction:column;
+      gap:.5rem; background:rgba(59,130,246,.04); min-width:0;
+    }
+    .arch-arrow { color:#3b82f6; font-size:1.1rem; flex-shrink:0; align-self:center; }
+    .arch-source-row {
+      display:flex; align-items:center; gap:.5rem; font-size:.7rem; padding:.25rem 0;
+    }
+    html.dark  .arch-source-row { color:#64748b; }
+    html.light .arch-source-row { color:#94a3b8; }
+    .arch-source-dot { width:.45rem; height:.45rem; border-radius:50%; flex-shrink:0; }
+    .arch-dot-live    { background:#4ade80; }
+    .arch-dot-pending { background:#30363d; }
+    html.light .arch-dot-pending { background:#e2e8f0; }
+
+    /* Contact chips in partner card */
+    .contact-chip {
+      display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .55rem;
+      border-radius:.375rem; font-size:.65rem; border:1px solid;
+    }
+    html.dark  .contact-chip { background:#161b22; border-color:#21262d; color:#8b949e; }
+    html.light .contact-chip { background:#f8fafc; border-color:#e2e8f0; color:#64748b; }
   </style>
 </head>
 
@@ -167,6 +299,10 @@
       <button class="nav-tab" data-page="assistant">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
         <span data-i18n="nav_assistant">AI Assistant</span>
+      </button>
+      <button class="nav-tab" data-page="partners">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/></svg>
+        <span data-i18n="nav_partners">Partners</span>
       </button>
     </div>
 
@@ -358,7 +494,147 @@
   </div>
 </div>
 
+<!-- ────────────────── PARTNERS / RWE PAGE ────────────────── -->
+<div id="page-partners" class="hidden pt-6">
+  <!-- Page header -->
+  <div class="flex flex-wrap items-start justify-between gap-4 mb-5">
+    <div>
+      <h2 class="text-xl font-bold" data-i18n="partners_title">Partner Ecosystem</h2>
+      <p class="text-sm dark:text-slate-400 text-slate-500 mt-0.5" data-i18n="partners_subtitle">Community partnerships · Source registry · Evidence comparison</p>
+    </div>
+    <div id="rweHeaderActions"></div>
+  </div>
+
+  <!-- Stats strip (populated by JS) -->
+  <div id="rweStats" class="hidden mb-5 grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+
+  <!-- Sub-nav -->
+  <div class="flex gap-0.5 border-b dark:border-surface-border border-slate-200 mb-6 overflow-x-auto">
+    <button class="rwe-tab active" data-sub="rwe-orgs"       onclick="showRweTab('rwe-orgs')"       data-i18n="rwe_nav_orgs">Community Partners</button>
+    <button class="rwe-tab"        data-sub="rwe-sources"    onclick="showRweTab('rwe-sources')"    data-i18n="rwe_nav_sources">Source Registry</button>
+    <button class="rwe-tab"        data-sub="rwe-contracts"  onclick="showRweTab('rwe-contracts')"  data-i18n="rwe_nav_contracts">Contracts &amp; Licensing</button>
+    <button class="rwe-tab"        data-sub="rwe-comparison" onclick="showRweTab('rwe-comparison')" data-i18n="rwe_nav_comparison">Evidence Comparison</button>
+  </div>
+
+  <!-- ── Community Partners ── -->
+  <div id="rwe-orgs" class="rwe-subpage">
+    <div id="rweBanner" class="hidden mb-4"></div>
+    <div id="rwePartnerGrid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+    <div id="rwePartnerEmpty" class="hidden text-center py-20">
+      <div class="text-4xl mb-3">🤝</div>
+      <p class="dark:text-slate-400 text-slate-500 text-sm mb-4" data-i18n="rwe_partners_empty">No partners registered yet.</p>
+      <button onclick="openRegisterPartnerModal()"
+        class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold rounded-xl transition-colors" data-i18n="rwe_register_partner">Register Partner</button>
+    </div>
+  </div>
+
+  <!-- ── Source Registry ── -->
+  <div id="rwe-sources" class="rwe-subpage hidden">
+    <div id="rweSourceGrid" class="space-y-3"></div>
+    <div id="rweSourceEmpty" class="hidden text-center py-20">
+      <div class="text-4xl mb-3">🔌</div>
+      <p class="dark:text-slate-400 text-slate-500 text-sm mb-2" data-i18n="rwe_sources_empty">No sources registered.</p>
+    </div>
+  </div>
+
+  <!-- ── Contracts & Licensing ── -->
+  <div id="rwe-contracts" class="rwe-subpage hidden">
+    <div id="rweContractsList" class="space-y-3"></div>
+    <div id="rweContractsEmpty" class="hidden text-center py-20">
+      <div class="text-4xl mb-3">📋</div>
+      <p class="dark:text-slate-400 text-slate-500 text-sm" data-i18n="rwe_contracts_empty">No agreements on file.</p>
+    </div>
+  </div>
+
+  <!-- ── Evidence Comparison ── -->
+  <div id="rwe-comparison" class="rwe-subpage hidden">
+
+    <!-- Architecture diagram -->
+    <div class="dark:bg-[#0a0f1a] bg-slate-50 border dark:border-surface-border border-slate-200 rounded-2xl p-6 mb-6">
+      <div class="text-center mb-5">
+        <h3 class="font-bold text-sm dark:text-slate-200 text-slate-700" data-i18n="arch_engine_title">HLEO Comparison Engine</h3>
+        <p class="text-xs dark:text-slate-600 text-slate-400 mt-0.5" data-i18n="arch_engine_sub">Evidence concordance analysis · rwe_v1 framework</p>
+      </div>
+
+      <!-- Three-pillar layout -->
+      <div class="flex flex-col sm:flex-row gap-3 items-stretch mb-4">
+
+        <!-- Scientific pillar -->
+        <div class="arch-pillar flex-1">
+          <div class="text-xs font-semibold dark:text-slate-300 text-slate-600 mb-2" data-i18n="arch_sci_title">Scientific Evidence</div>
+          <div class="arch-source-row"><div class="arch-source-dot arch-dot-live"></div>PubMed</div>
+          <div class="arch-source-row"><div class="arch-source-dot arch-dot-live"></div>Europe PMC</div>
+          <div class="arch-source-row"><div class="arch-source-dot arch-dot-live"></div>ClinicalTrials.gov</div>
+        </div>
+
+        <!-- Arrows (desktop) -->
+        <div class="hidden sm:flex items-center justify-center text-brand-500 font-bold text-lg select-none">→</div>
+
+        <!-- Engine centre -->
+        <div class="arch-engine flex-1">
+          <div class="text-xs font-bold text-brand-400 text-center mb-2" data-i18n="arch_engine_title">HLEO Comparison Engine</div>
+          <div class="text-xs dark:text-slate-400 text-slate-500 text-center leading-relaxed" data-i18n="arch_dimensions">
+            Efficacy · Safety · Adherence · Tolerability · Quality of Life
+          </div>
+        </div>
+
+        <!-- Arrows (desktop) -->
+        <div class="hidden sm:flex items-center justify-center text-brand-500 font-bold text-lg select-none">←</div>
+
+        <!-- Community pillar (updated by JS) -->
+        <div class="arch-pillar flex-1" id="archCommunityPillar">
+          <div class="text-xs font-semibold dark:text-slate-300 text-slate-600 mb-2" data-i18n="arch_comm_title">Community Evidence</div>
+          <div class="arch-source-row dark:text-slate-600 text-slate-400 italic">
+            <div class="arch-source-dot arch-dot-pending"></div>
+            <span data-i18n="arch_awaiting">Awaiting authorized sources</span>
+          </div>
+          <div class="text-[.65rem] dark:text-slate-700 text-slate-300 mt-1.5" data-i18n="arch_awaiting_sub">Register and authorize partner sources to enable comparison</div>
+        </div>
+      </div>
+
+      <!-- Arrow down to output -->
+      <div class="flex justify-center mb-3">
+        <div class="w-px h-6 dark:bg-slate-700 bg-slate-200"></div>
+      </div>
+
+      <!-- Output card -->
+      <div class="dark:bg-[#161b22] bg-white border dark:border-surface-border border-slate-200 rounded-xl p-4 max-w-sm mx-auto text-center">
+        <div class="text-xs font-semibold dark:text-slate-200 text-slate-700 mb-1" data-i18n="arch_output_title">Comparative Evidence Report</div>
+        <div class="text-xs dark:text-slate-500 text-slate-400" data-i18n="arch_output_sub">Agreement score · Divergence mapping · Clinical synthesis</div>
+      </div>
+    </div>
+
+    <!-- Comparisons list -->
+    <div id="rweCompGrid" class="space-y-3"></div>
+    <div id="rweCompEmpty" class="hidden text-center py-12">
+      <p class="dark:text-slate-500 text-slate-400 text-sm mb-4" data-i18n="rwe_comparisons_empty">No comparisons yet.</p>
+      <button onclick="openNewComparisonModal()"
+        class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold rounded-xl transition-colors" data-i18n="rwe_new_comparison">New Comparison</button>
+    </div>
+  </div>
+</div>
+
 </main><!-- /main -->
+
+<!-- ═══════════════════ RWE MODAL ═══════════════════════════════════════════ -->
+<div id="rweModal" class="rwe-modal-backdrop hidden" style="display:none;align-items:center;justify-content:center;padding:1rem">
+  <div class="rwe-modal-box" style="margin:auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b dark:border-[#30363d] border-slate-100 flex-shrink-0">
+      <h3 id="rweModalTitle" class="font-semibold text-base dark:text-slate-100 text-slate-800"></h3>
+      <button onclick="closeRweModal()" class="w-7 h-7 flex items-center justify-center rounded-lg dark:text-slate-500 text-slate-400 dark:hover:text-slate-300 hover:text-slate-600 dark:hover:bg-surface-hover hover:bg-slate-100 transition-colors text-lg leading-none">&times;</button>
+    </div>
+    <!-- Body (injected by JS) -->
+    <div id="rweModalBody" class="overflow-y-auto px-6 py-5 flex-1 space-y-4"></div>
+    <!-- Footer -->
+    <div class="flex justify-end gap-2 px-6 py-4 border-t dark:border-[#30363d] border-slate-100 flex-shrink-0">
+      <button onclick="closeRweModal()"
+        class="px-4 py-1.5 text-sm dark:text-slate-400 text-slate-500 dark:hover:text-slate-300 hover:text-slate-700 transition-colors" data-i18n="form_cancel">Cancel</button>
+      <button id="rweModalConfirmBtn" onclick="_rweConfirm()"
+        class="px-4 py-1.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold rounded-lg transition-colors"></button>
+    </div>
+  </div>
+</div>
 
 <style>
   .suggestion-chip {
@@ -466,6 +742,80 @@ const TRANSLATIONS = {
     translate_panel_label:"AI Translation",
     translate_summary_label:"Summary",
     translate_error:"Translation failed",
+    // ── Partner Management System ──────────────────────────────────────────
+    nav_partners:"Partners",
+    rwe_nav_orgs:"Community Partners", rwe_nav_sources:"Source Registry",
+    rwe_nav_contracts:"Contracts & Licensing", rwe_nav_comparison:"Evidence Comparison",
+    partners_title:"Partner Ecosystem",
+    partners_subtitle:"Community partnerships \u00b7 Source registry \u00b7 Evidence comparison",
+    rwe_register_partner:"Register Partner", rwe_register_source:"Register Source",
+    rwe_new_comparison:"New Comparison", rwe_add_contact:"Add Contact",
+    rwe_add_agreement:"Add Agreement", rwe_authorize:"Authorize", rwe_revoke:"Revoke",
+    rwe_advance_stage:"Advance Stage",
+    // Lifecycle stages
+    lc_proposed:"Proposed", lc_contacted:"Contacted", lc_in_discussion:"In Discussion",
+    lc_legal_review:"Legal Review", lc_approved:"Approved", lc_active:"Active",
+    lc_declined:"Declined", lc_disabled:"Disabled",
+    // Source / auth statuses
+    src_pending:"Pending", src_approved:"Approved", src_active:"Active",
+    src_paused:"Paused", src_suspended:"Suspended",
+    auth_unauthorized:"Unauthorized", auth_authorized:"Authorized",
+    auth_expired:"Expired", auth_revoked:"Revoked",
+    // Partner & integration types
+    ptype_forum:"Patient Forum", ptype_patient_org:"Patient Organisation",
+    ptype_healthcare_community:"Healthcare Community", ptype_research_network:"Research Network",
+    itype_api:"API", itype_licensed_dataset:"Licensed Dataset",
+    itype_rss:"RSS Feed", itype_manual_import:"Manual Import",
+    itype_research_collaboration:"Research Collaboration",
+    // Agreement types & statuses
+    agmt_mou:"MOU", agmt_dsa:"Data Sharing Agreement", agmt_nda:"NDA",
+    agmt_rca:"Research Collaboration Agreement", agmt_api_license:"API License",
+    agmt_draft:"Draft", agmt_under_review:"Under Review", agmt_negotiating:"Negotiating",
+    agmt_signed:"Signed", agmt_active:"Active", agmt_expired:"Expired",
+    agmt_terminated:"Terminated",
+    // License types
+    lic_cc_by:"CC BY", lic_cc_by_nc:"CC BY-NC", lic_proprietary:"Proprietary",
+    lic_research_only:"Research Only", lic_open_data:"Open Data", lic_custom:"Custom",
+    // Empty states
+    rwe_partners_empty:"No partners registered yet.",
+    rwe_sources_empty:"No sources registered. Approve a partner first, then register their sources.",
+    rwe_contracts_empty:"No agreements on file. Add agreements to partners to track legal status.",
+    rwe_comparisons_empty:"No comparisons yet. Create one once sources are authorized.",
+    // Form labels
+    form_name:"Name", form_short_name:"Short Name", form_org_type:"Organisation Type",
+    form_integration_type:"Integration Type", form_website:"Website",
+    form_description:"Description", form_notes:"Notes",
+    form_source_type:"Source Type", form_data_category:"Data Category",
+    form_evidence_level:"Evidence Level", form_geo_scope:"Geographic Scope",
+    form_est_records:"Estimated Records",
+    form_agreement_type:"Agreement Type", form_title:"Title", form_summary:"Summary",
+    form_cancel:"Cancel", form_save:"Save",
+    // Contacts
+    contact_full_name:"Full Name", contact_role:"Role", contact_email:"Email",
+    contact_phone:"Phone", contact_dept:"Department",
+    contact_primary:"Primary contact",
+    rwe_no_contacts:"No contacts added",
+    // Architecture diagram
+    arch_sci_title:"Scientific Evidence", arch_comm_title:"Community Evidence",
+    arch_engine_title:"HLEO Comparison Engine",
+    arch_engine_sub:"Evidence concordance analysis \u00b7 rwe_v1 framework",
+    arch_dimensions:"Efficacy \u00b7 Safety \u00b7 Adherence \u00b7 Tolerability \u00b7 Quality of Life",
+    arch_awaiting:"Awaiting authorized sources",
+    arch_awaiting_sub:"Register and authorize partner sources to enable comparison",
+    arch_output_title:"Comparative Evidence Report",
+    arch_output_sub:"Agreement score \u00b7 Divergence mapping \u00b7 Clinical synthesis",
+    // Stats
+    rwe_stat_pipeline:"In Pipeline", rwe_stat_active:"Active Partners",
+    rwe_stat_sources:"Sources", rwe_stat_agreements:"Agreements",
+    rwe_contacts_lbl:"contacts", rwe_agreements_lbl:"agreements",
+    rwe_sources_lbl:"sources",
+    // Comparison form
+    cmp_topic_label:"Clinical Topic",
+    cmp_topic_placeholder:"e.g. finasteride androgenetic alopecia",
+    cmp_dimensions_label:"Comparison Dimensions",
+    // Misc
+    rwe_loading:"Loading\u2026", rwe_partner_label:"Partner",
+    rwe_last_contact:"Last contact", rwe_next_followup:"Next follow-up",
     lang_en:"EN", lang_it:"IT",
   },
   it: {
@@ -549,6 +899,68 @@ const TRANSLATIONS = {
     translate_panel_label:"Traduzione IA",
     translate_summary_label:"Riepilogo",
     translate_error:"Traduzione non riuscita",
+    // ── Sistema di Gestione Partnership ────────────────────────────────────
+    nav_partners:"Partner",
+    rwe_nav_orgs:"Partner della Community", rwe_nav_sources:"Registro Fonti",
+    rwe_nav_contracts:"Contratti e Licenze", rwe_nav_comparison:"Confronto Evidenze",
+    partners_title:"Ecosistema Partner",
+    partners_subtitle:"Partnership comunitarie \u00b7 Registro fonti \u00b7 Confronto evidenze",
+    rwe_register_partner:"Registra Partner", rwe_register_source:"Registra Fonte",
+    rwe_new_comparison:"Nuovo Confronto", rwe_add_contact:"Aggiungi Contatto",
+    rwe_add_agreement:"Aggiungi Accordo", rwe_authorize:"Autorizza", rwe_revoke:"Revoca",
+    rwe_advance_stage:"Avanza Fase",
+    lc_proposed:"Proposto", lc_contacted:"Contattato", lc_in_discussion:"In Discussione",
+    lc_legal_review:"Revisione Legale", lc_approved:"Approvato", lc_active:"Attivo",
+    lc_declined:"Rifiutato", lc_disabled:"Disabilitato",
+    src_pending:"In attesa", src_approved:"Approvato", src_active:"Attivo",
+    src_paused:"In pausa", src_suspended:"Sospeso",
+    auth_unauthorized:"Non autorizzato", auth_authorized:"Autorizzato",
+    auth_expired:"Scaduto", auth_revoked:"Revocato",
+    ptype_forum:"Forum Pazienti", ptype_patient_org:"Organizzazione Pazienti",
+    ptype_healthcare_community:"Comunit\u00e0 Sanitaria", ptype_research_network:"Rete di Ricerca",
+    itype_api:"API", itype_licensed_dataset:"Dataset con Licenza",
+    itype_rss:"Feed RSS", itype_manual_import:"Importazione Manuale",
+    itype_research_collaboration:"Collaborazione di Ricerca",
+    agmt_mou:"MOU", agmt_dsa:"Accordo di Condivisione Dati", agmt_nda:"NDA",
+    agmt_rca:"Accordo di Collaborazione", agmt_api_license:"Licenza API",
+    agmt_draft:"Bozza", agmt_under_review:"In Revisione", agmt_negotiating:"In Negoziazione",
+    agmt_signed:"Firmato", agmt_active:"Attivo", agmt_expired:"Scaduto",
+    agmt_terminated:"Terminato",
+    lic_cc_by:"CC BY", lic_cc_by_nc:"CC BY-NC", lic_proprietary:"Proprietario",
+    lic_research_only:"Solo Ricerca", lic_open_data:"Dati Aperti", lic_custom:"Personalizzato",
+    rwe_partners_empty:"Nessun partner registrato.",
+    rwe_sources_empty:"Nessuna fonte registrata. Prima approva un partner.",
+    rwe_contracts_empty:"Nessun accordo registrato. Aggiungi accordi ai partner.",
+    rwe_comparisons_empty:"Nessun confronto ancora. Crea un confronto quando le fonti sono autorizzate.",
+    form_name:"Nome", form_short_name:"Nome Breve", form_org_type:"Tipo di Organizzazione",
+    form_integration_type:"Tipo di Integrazione", form_website:"Sito Web",
+    form_description:"Descrizione", form_notes:"Note",
+    form_source_type:"Tipo di Fonte", form_data_category:"Categoria Dati",
+    form_evidence_level:"Livello di Evidenza", form_geo_scope:"Ambito Geografico",
+    form_est_records:"Record Stimati",
+    form_agreement_type:"Tipo di Accordo", form_title:"Titolo", form_summary:"Sintesi",
+    form_cancel:"Annulla", form_save:"Salva",
+    contact_full_name:"Nome Completo", contact_role:"Ruolo", contact_email:"Email",
+    contact_phone:"Telefono", contact_dept:"Dipartimento",
+    contact_primary:"Contatto principale",
+    rwe_no_contacts:"Nessun contatto aggiunto",
+    arch_sci_title:"Evidenza Scientifica", arch_comm_title:"Evidenza della Community",
+    arch_engine_title:"Motore di Confronto HLEO",
+    arch_engine_sub:"Analisi concordanza evidenze \u00b7 framework rwe_v1",
+    arch_dimensions:"Efficacia \u00b7 Sicurezza \u00b7 Aderenza \u00b7 Tollerabilit\u00e0 \u00b7 Qualit\u00e0 della Vita",
+    arch_awaiting:"In attesa di fonti autorizzate",
+    arch_awaiting_sub:"Registra e autorizza fonti partner per abilitare il confronto",
+    arch_output_title:"Report Evidenze Comparative",
+    arch_output_sub:"Punteggio di concordanza \u00b7 Mappatura divergenze \u00b7 Sintesi clinica",
+    rwe_stat_pipeline:"In Pipeline", rwe_stat_active:"Partner Attivi",
+    rwe_stat_sources:"Fonti", rwe_stat_agreements:"Accordi",
+    rwe_contacts_lbl:"contatti", rwe_agreements_lbl:"accordi",
+    rwe_sources_lbl:"fonti",
+    cmp_topic_label:"Argomento Clinico",
+    cmp_topic_placeholder:"es. finasteride alopecia androgenetica",
+    cmp_dimensions_label:"Dimensioni di Confronto",
+    rwe_loading:"Caricamento\u2026", rwe_partner_label:"Partner",
+    rwe_last_contact:"Ultimo contatto", rwe_next_followup:"Prossimo follow-up",
     lang_en:"EN", lang_it:"IT",
   },
 };
@@ -581,6 +993,7 @@ function setLang(code) {
   const activePage = document.querySelector('.nav-tab.active')?.dataset.page;
   if (activePage === 'profiles')    loadProfiles();
   if (activePage === 'experiences') loadExperiences();
+  if (activePage === 'partners')    loadRwePartners();
   if (activePage === 'search' && allSearchResults.length) renderSearch();
 }
 
@@ -651,7 +1064,7 @@ document.getElementById('themeToggle').addEventListener('click', () => {
 });
 
 // ─── Page routing ────────────────────────────────────────────────────────────
-const pages = ['search','profiles','experiences','assistant'];
+const pages = ['search','profiles','experiences','assistant','partners'];
 function showPage(name) {
   pages.forEach(p => {
     document.getElementById(`page-${p}`).classList.toggle('hidden', p !== name);
@@ -662,6 +1075,7 @@ function showPage(name) {
   if (name === 'profiles')    loadProfiles();
   if (name === 'experiences') loadExperiences();
   if (name === 'assistant')   loadSessions();
+  if (name === 'partners')    loadRwePartners();
 }
 document.querySelectorAll('.nav-tab').forEach(t => t.addEventListener('click', () => showPage(t.dataset.page)));
 
@@ -1382,6 +1796,579 @@ async function refreshNavCounts() {
     if (data.clinical_profiles)  document.getElementById('profilesNavCount').textContent  = `(${data.clinical_profiles})`;
     if (data.patient_experiences) document.getElementById('expNavCount').textContent       = `(${data.patient_experiences})`;
   } catch(e) { /* silent */ }
+}
+
+// ═══════════════════ PARTNER ECOSYSTEM (RWE) ══════════════════════════════════
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let rwePartners = [];
+let rweSources  = [];
+let _rweActiveTab      = 'rwe-orgs';
+let _rweModalConfirmFn = null;
+
+// ── Sub-nav ───────────────────────────────────────────────────────────────────
+function showRweTab(sub) {
+  _rweActiveTab = sub;
+  document.querySelectorAll('.rwe-tab').forEach(b => b.classList.toggle('active', b.dataset.sub === sub));
+  document.querySelectorAll('.rwe-subpage').forEach(el => el.classList.toggle('hidden', el.id !== sub));
+  if (sub === 'rwe-orgs')       loadRwePartners();
+  if (sub === 'rwe-sources')    loadRweSources();
+  if (sub === 'rwe-contracts')  loadRweContracts();
+  if (sub === 'rwe-comparison') loadRweComparisons();
+  _rweSetHeaderAction(sub);
+}
+
+function _rweSetHeaderAction(sub) {
+  const w = document.getElementById('rweHeaderActions');
+  if (!w) return;
+  const BTN = (onclick, cls, label) =>
+    `<button onclick="${onclick}" class="px-3 py-1.5 ${cls} text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>${esc(label)}</button>`;
+  const map = {
+    'rwe-orgs':       BTN("openRegisterPartnerModal()", "bg-brand-500 hover:bg-brand-600", t('rwe_register_partner')),
+    'rwe-sources':    BTN("openRegisterSourceModal()",  "bg-violet-600 hover:bg-violet-700", t('rwe_register_source')),
+    'rwe-contracts':  '',
+    'rwe-comparison': BTN("openNewComparisonModal()",   "bg-teal-600 hover:bg-teal-700", t('rwe_new_comparison')),
+  };
+  w.innerHTML = map[sub] ?? '';
+}
+
+// ── Loaders ───────────────────────────────────────────────────────────────────
+async function loadRwePartners() {
+  _rweSetHeaderAction('rwe-orgs');
+  const grid  = document.getElementById('rwePartnerGrid');
+  const empty = document.getElementById('rwePartnerEmpty');
+  if (!grid) return;
+  grid.innerHTML = `<p class="text-xs dark:text-slate-600 text-slate-400 py-6 text-center col-span-3">${esc(t('rwe_loading'))}</p>`;
+  empty.classList.add('hidden');
+  try {
+    const r = await fetch('/rwe/partners');
+    rwePartners = await r.json();
+    _rweRenderStats(rwePartners);
+    if (!rwePartners.length) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    grid.innerHTML = rwePartners.map(buildPartnerCard).join('');
+  } catch(e) { grid.innerHTML = `<p class="text-xs text-red-400 py-6 text-center col-span-3">${esc(e.message)}</p>`; }
+}
+
+async function loadRweSources() {
+  _rweSetHeaderAction('rwe-sources');
+  const grid  = document.getElementById('rweSourceGrid');
+  const empty = document.getElementById('rweSourceEmpty');
+  if (!grid) return;
+  grid.innerHTML = `<p class="text-xs dark:text-slate-600 text-slate-400 py-6 text-center">${esc(t('rwe_loading'))}</p>`;
+  empty.classList.add('hidden');
+  try {
+    const r = await fetch('/rwe/sources');
+    rweSources = await r.json();
+    if (!rweSources.length) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    grid.innerHTML = rweSources.map(buildSourceCard).join('');
+  } catch(e) { grid.innerHTML = `<p class="text-xs text-red-400 py-6 text-center">${esc(e.message)}</p>`; }
+}
+
+async function loadRweContracts() {
+  _rweSetHeaderAction('rwe-contracts');
+  const list  = document.getElementById('rweContractsList');
+  const empty = document.getElementById('rweContractsEmpty');
+  if (!list) return;
+  list.innerHTML = `<p class="text-xs dark:text-slate-600 text-slate-400 py-6 text-center">${esc(t('rwe_loading'))}</p>`;
+  empty.classList.add('hidden');
+  try {
+    const [ra, rl] = await Promise.all([fetch('/rwe/agreements'), fetch('/rwe/licenses')]);
+    const agreements = await ra.json();
+    const licenses   = await rl.json();
+    if (!agreements.length && !licenses.length) { list.innerHTML=''; empty.classList.remove('hidden'); return; }
+    let html = '';
+    if (agreements.length) {
+      html += `<h3 class="text-xs font-semibold uppercase tracking-wider dark:text-slate-500 text-slate-400 mb-3">Agreements (${agreements.length})</h3>`;
+      html += '<div class="space-y-2 mb-6">' + agreements.map(buildAgreementRow).join('') + '</div>';
+    }
+    if (licenses.length) {
+      html += `<h3 class="text-xs font-semibold uppercase tracking-wider dark:text-slate-500 text-slate-400 mb-3">Data Licenses (${licenses.length})</h3>`;
+      html += '<div class="space-y-2">' + licenses.map(buildLicenseRow).join('') + '</div>';
+    }
+    list.innerHTML = html;
+  } catch(e) { list.innerHTML = `<p class="text-xs text-red-400 py-6 text-center">${esc(e.message)}</p>`; }
+}
+
+async function loadRweComparisons() {
+  _rweSetHeaderAction('rwe-comparison');
+  const grid  = document.getElementById('rweCompGrid');
+  const empty = document.getElementById('rweCompEmpty');
+  if (!grid) return;
+  const activeSrc = rweSources.filter(s => s.authorization_status === 'authorized');
+  _rweUpdateArchDiagram(activeSrc);
+  grid.innerHTML = `<p class="text-xs dark:text-slate-600 text-slate-400 py-4 text-center">${esc(t('rwe_loading'))}</p>`;
+  empty.classList.add('hidden');
+  try {
+    const r    = await fetch('/rwe/evidence-comparisons');
+    const data = await r.json();
+    if (!data.length) { grid.innerHTML=''; empty.classList.remove('hidden'); return; }
+    grid.innerHTML = data.map(buildComparisonCard).join('');
+  } catch(e) { grid.innerHTML = `<p class="text-xs text-red-400 py-4 text-center">${esc(e.message)}</p>`; }
+}
+
+// ── Stats strip ───────────────────────────────────────────────────────────────
+function _rweRenderStats(partners) {
+  const el = document.getElementById('rweStats');
+  if (!el) return;
+  if (!partners.length) { el.classList.add('hidden'); return; }
+  const active   = partners.filter(p => p.status === 'active').length;
+  const pipeline = partners.filter(p => !['active','declined','disabled'].includes(p.status)).length;
+  el.classList.remove('hidden');
+  el.innerHTML = [
+    [partners.length, t('rwe_stat_pipeline').replace('In ','')+'s', '#64748b'],
+    [active,          t('rwe_stat_active'),   '#4ade80'],
+    [pipeline,        t('rwe_stat_pipeline'), '#fbbf24'],
+    [rweSources.length, t('rwe_stat_sources'), '#60a5fa'],
+  ].map(([n, label]) =>
+    `<div class="dark:bg-surface-card bg-white border dark:border-surface-border border-slate-200 rounded-xl px-4 py-3 text-center">
+      <div class="text-xl font-bold dark:text-slate-200 text-slate-700">${n}</div>
+      <div class="text-xs dark:text-slate-500 text-slate-400 mt-0.5">${esc(label)}</div>
+    </div>`
+  ).join('');
+}
+
+// ── Card builders ─────────────────────────────────────────────────────────────
+function buildPartnerCard(p) {
+  const PTYPE = {forum:'ptype_forum',patient_org:'ptype_patient_org',
+    healthcare_community:'ptype_healthcare_community',research_network:'ptype_research_network'};
+  const ITYPE_KEY = {api:'itype_api',licensed_dataset:'itype_licensed_dataset',
+    rss:'itype_rss',manual_import:'itype_manual_import',research_collaboration:'itype_research_collaboration'};
+  const tBadge = p.partner_type
+    ? `<span class="rwe-pill dark:bg-slate-700/40 bg-slate-100 dark:text-slate-400 text-slate-500">${esc(t(PTYPE[p.partner_type]||''))}</span>` : '';
+  const iBadge = p.integration_type
+    ? `<span class="rwe-pill dark:bg-blue-500/10 bg-blue-50 dark:text-blue-400 text-blue-600">${esc(t(ITYPE_KEY[p.integration_type]||''))}</span>` : '';
+  return `<div class="partner-card p-5">
+    <div class="flex items-start justify-between gap-2 mb-3">
+      <div class="min-w-0">
+        <div class="font-semibold text-sm dark:text-slate-100 text-slate-800 leading-snug">${esc(p.name)}</div>
+        <div class="flex flex-wrap gap-1.5 mt-1.5">${tBadge}${iBadge}</div>
+      </div>
+      <div class="flex-shrink-0">${_partnerPill(p.status)}</div>
+    </div>
+    ${_lcBar(p.status)}
+    <div class="mt-3 space-y-1.5 text-xs">
+      ${p.description ? `<p class="dark:text-slate-400 text-slate-500 line-clamp-2 leading-relaxed">${esc(p.description)}</p>` : ''}
+      ${p.website_url ? `<a href="${esc(p.website_url)}" target="_blank" rel="noopener" class="dark:text-brand-400 text-brand-500 hover:underline truncate block">${esc(p.website_url.replace(/^https?:\/\//,''))}</a>` : ''}
+      ${p.last_contact_date ? `<p class="dark:text-slate-600 text-slate-400">${esc(t('rwe_last_contact'))}: ${p.last_contact_date.slice(0,10)}</p>` : ''}
+      ${p.next_followup_date ? `<p class="dark:text-amber-500/70 text-amber-600 text-[.65rem]">${esc(t('rwe_next_followup'))}: ${p.next_followup_date.slice(0,10)}</p>` : ''}
+    </div>
+    <div class="mt-4 pt-3 border-t dark:border-surface-border border-slate-100 flex flex-wrap gap-1.5">
+      <button onclick="openAddContactModal('${esc(p.partner_id)}','${esc(p.name).replace(/'/g,"\\'")}')"
+        class="text-xs px-2.5 py-1 dark:bg-surface-hover bg-slate-50 dark:text-slate-400 text-slate-500 dark:hover:text-slate-300 hover:text-slate-700 rounded-lg border dark:border-surface-border border-slate-200 transition-colors">
+        + ${esc(t('rwe_add_contact'))}
+      </button>
+      <button onclick="openAddAgreementModal('${esc(p.partner_id)}','${esc(p.name).replace(/'/g,"\\'")}')"
+        class="text-xs px-2.5 py-1 dark:bg-surface-hover bg-slate-50 dark:text-slate-400 text-slate-500 dark:hover:text-slate-300 hover:text-slate-700 rounded-lg border dark:border-surface-border border-slate-200 transition-colors">
+        + ${esc(t('rwe_add_agreement'))}
+      </button>
+      ${_lcCanAdvance(p.status)
+        ? `<button onclick="advancePartnerStage('${esc(p.partner_id)}','${esc(p.status)}')"
+            class="text-xs px-2.5 py-1 bg-brand-500/10 dark:text-brand-400 text-brand-600 hover:bg-brand-500/20 rounded-lg border border-brand-500/20 transition-colors ml-auto">
+            ${esc(t('rwe_advance_stage'))} →
+          </button>`
+        : ''}
+    </div>
+  </div>`;
+}
+
+function buildSourceCard(s) {
+  const pName = esc(rwePartners.find(p => p.partner_id === s.partner_id)?.name || s.partner_id);
+  const ikey  = {api:'itype_api',licensed_dataset:'itype_licensed_dataset',rss:'itype_rss',
+    manual_import:'itype_manual_import',research_collaboration:'itype_research_collaboration'};
+  const iBadge= s.integration_type
+    ? `<span class="rwe-pill dark:bg-blue-500/10 bg-blue-50 dark:text-blue-400 text-blue-600">${esc(t(ikey[s.integration_type]||s.integration_type))}</span>` : '';
+  const cBadge= s.data_category
+    ? `<span class="rwe-pill dark:bg-slate-700/40 bg-slate-100 dark:text-slate-400 text-slate-500">${esc(s.data_category.replace(/_/g,' '))}</span>` : '';
+  return `<div class="rwe-row-card">
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2 mb-1.5">
+          <span class="font-semibold text-sm dark:text-slate-100 text-slate-800">${esc(s.name)}</span>
+          ${iBadge}${cBadge}
+        </div>
+        <div class="flex flex-wrap gap-3 text-xs dark:text-slate-500 text-slate-400">
+          <span>${esc(t('rwe_partner_label'))}: <strong class="dark:text-slate-300 text-slate-600">${pName}</strong></span>
+          ${s.evidence_level ? `<span>${esc(s.evidence_level)}</span>` : ''}
+          ${s.geographic_scope ? `<span>&#x1F30D; ${esc(s.geographic_scope)}</span>` : ''}
+          ${s.estimated_records ? `<span>~${Number(s.estimated_records).toLocaleString()} records</span>` : ''}
+        </div>
+        ${s.description ? `<p class="text-xs dark:text-slate-500 text-slate-400 mt-2 leading-relaxed line-clamp-2">${esc(s.description)}</p>` : ''}
+      </div>
+      <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+        ${_sourcePill(s.status)}
+        ${_authPill(s.authorization_status)}
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildAgreementRow(a) {
+  const ATYPE = {mou:'agmt_mou',data_sharing_agreement:'agmt_dsa',nda:'agmt_nda',
+    research_collaboration_agreement:'agmt_rca',api_license:'agmt_api_license'};
+  const ASTATUS = {draft:'agmt_draft',under_review:'agmt_under_review',negotiating:'agmt_negotiating',
+    signed:'agmt_signed',active:'agmt_active',expired:'agmt_expired',terminated:'agmt_terminated'};
+  const APILL = {draft:'pill-draft',under_review:'pill-review',negotiating:'pill-review',
+    signed:'pill-signed',active:'pill-active',expired:'pill-expired',terminated:'pill-declined'};
+  const partner = rwePartners.find(p => p.partner_id === a.partner_id);
+  return `<div class="rwe-row-card">
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2 flex-wrap mb-1">
+          <span class="font-medium text-sm dark:text-slate-200 text-slate-700">${esc(a.title)}</span>
+          <span class="rwe-pill dark:bg-slate-700/40 bg-slate-100 dark:text-slate-400 text-slate-500">${esc(t(ATYPE[a.agreement_type]||a.agreement_type||''))}</span>
+          <span class="rwe-pill ${APILL[a.status]||''}">${esc(t(ASTATUS[a.status])||a.status)}</span>
+        </div>
+        <div class="flex flex-wrap gap-3 text-xs dark:text-slate-500 text-slate-400">
+          ${partner ? `<span>${esc(t('rwe_partner_label'))}: ${esc(partner.name)}</span>` : ''}
+          ${a.effective_from  ? `<span>From: ${a.effective_from.slice(0,10)}</span>` : ''}
+          ${a.effective_until ? `<span>Until: ${a.effective_until.slice(0,10)}</span>` : ''}
+          <span>v${esc(a.version||'1.0')}</span>
+        </div>
+        ${a.summary ? `<p class="text-xs dark:text-slate-500 text-slate-400 mt-1 italic">${esc(a.summary)}</p>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildLicenseRow(l) {
+  const LTYPE = {cc_by:'lic_cc_by',cc_by_nc:'lic_cc_by_nc',proprietary:'lic_proprietary',
+    research_only:'lic_research_only',open_data:'lic_open_data',custom:'lic_custom'};
+  const source = rweSources.find(s => s.source_id === l.source_id);
+  return `<div class="rwe-row-card">
+    <div class="flex items-center justify-between gap-2">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2 flex-wrap mb-1">
+          <span class="font-medium text-sm dark:text-slate-200 text-slate-700">${esc(t(LTYPE[l.license_type]||l.license_type))}</span>
+          <span class="rwe-pill ${l.status==='active'?'pill-active':'pill-expired'}">${esc(l.status)}</span>
+        </div>
+        <div class="flex flex-wrap gap-3 text-xs dark:text-slate-500 text-slate-400">
+          ${source ? `<span>Source: ${esc(source.name)}</span>` : ''}
+          ${(l.geographic_restrictions||[]).length ? `<span>Geo: ${l.geographic_restrictions.join(', ')}</span>` : ''}
+          ${l.valid_until ? `<span>Until: ${l.valid_until.slice(0,10)}</span>` : ''}
+        </div>
+        ${(l.restrictions||[]).length
+          ? `<div class="flex flex-wrap gap-1 mt-2">${l.restrictions.map(r=>`<span class="text-[.6rem] dark:bg-red-900/20 bg-red-50 dark:text-red-400 text-red-600 px-1.5 py-0.5 rounded">${esc(r.replace(/_/g,' '))}</span>`).join('')}</div>`
+          : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildComparisonCard(c) {
+  const sc = (c.scientific_profile_ids||[]).length;
+  const cc = (c.community_source_ids  ||[]).length;
+  const CPILL = {draft:'pill-draft',complete:'pill-active',archived:'pill-disabled'};
+  return `<div class="rwe-row-card">
+    <div class="flex items-start justify-between gap-2">
+      <div class="min-w-0 flex-1">
+        <div class="font-semibold text-sm dark:text-slate-100 text-slate-800 mb-1.5">${esc(c.query_topic)}</div>
+        <div class="flex flex-wrap gap-3 text-xs dark:text-slate-500 text-slate-400">
+          <span>${(c.dimensions||[]).length} dimensions</span>
+          <span>${sc} scientific profile${sc!==1?'s':''}</span>
+          <span>${cc} community source${cc!==1?'s':''}</span>
+          <span>Framework: ${esc(c.comparison_framework)}</span>
+        </div>
+        ${(c.dimensions||[]).length
+          ? `<div class="flex flex-wrap gap-1 mt-2">${c.dimensions.map(d=>`<span class="text-[.6rem] dark:bg-surface-hover bg-slate-50 dark:text-slate-400 text-slate-500 px-1.5 py-0.5 rounded border dark:border-surface-border border-slate-200">${esc(d.replace(/_/g,' '))}</span>`).join('')}</div>`
+          : ''}
+      </div>
+      <span class="rwe-pill ${CPILL[c.status]||''} flex-shrink-0">${esc(c.status)}</span>
+    </div>
+  </div>`;
+}
+
+// ── Architecture diagram live update ─────────────────────────────────────────
+function _rweUpdateArchDiagram(activeSrc) {
+  const pillar = document.getElementById('archCommunityPillar');
+  if (!pillar) return;
+  const title = `<div class="text-xs font-semibold dark:text-slate-300 text-slate-600 mb-2">${esc(t('arch_comm_title'))}</div>`;
+  if (!activeSrc.length) {
+    pillar.innerHTML = title +
+      `<div class="arch-source-row dark:text-slate-600 text-slate-400 italic"><div class="arch-source-dot arch-dot-pending"></div>${esc(t('arch_awaiting'))}</div>
+       <div class="text-[.65rem] dark:text-slate-700 text-slate-300 mt-1.5">${esc(t('arch_awaiting_sub'))}</div>`;
+  } else {
+    pillar.innerHTML = title +
+      activeSrc.map(s=>`<div class="arch-source-row"><div class="arch-source-dot arch-dot-live"></div>${esc(s.name)}</div>`).join('');
+  }
+}
+
+// ── Lifecycle helpers ─────────────────────────────────────────────────────────
+const _LC_STEPS  = ['proposed','contacted','in_discussion','legal_review','approved','active'];
+const _LC_ABBREV = {proposed:'P',contacted:'C',in_discussion:'D',legal_review:'L',approved:'A',active:'\u2713'};
+const _LC_NEXT_STATE = {proposed:'contacted',contacted:'in_discussion',in_discussion:'legal_review',
+  legal_review:'approved',approved:'active'};
+
+function _lcBar(status) {
+  if (status === 'declined' || status === 'disabled') {
+    const cls = status === 'declined' ? 'lc-declined' : 'lc-disabled';
+    return `<div class="flex items-center gap-2 mt-2">
+      <div class="lc-node ${cls}">${status==='declined'?'\u2717':'\u25CB'}</div>
+      <span class="text-xs ${status==='declined'?'dark:text-red-400 text-red-500':'dark:text-slate-500 text-slate-400'}">${esc(t('lc_'+status))}</span>
+    </div>`;
+  }
+  const cur = _LC_STEPS.indexOf(status);
+  return '<div class="lc-bar mt-2" title="' + esc(t('lc_'+status)) + '">' +
+    _LC_STEPS.map((step, i) => {
+      const nc = i < cur ? 'lc-done' : i === cur ? 'lc-curr' : 'lc-next';
+      const lc = i < cur ? 'lc-done' : 'lc-next';
+      const dot = `<div class="lc-node ${nc}" title="${esc(t('lc_'+step))}">${esc(_LC_ABBREV[step]||step[0].toUpperCase())}</div>`;
+      return i < _LC_STEPS.length - 1 ? dot + `<div class="lc-line ${lc}"></div>` : dot;
+    }).join('') +
+  '</div>';
+}
+
+function _lcCanAdvance(status) { return !!_LC_NEXT_STATE[status]; }
+
+// ── Status pills ──────────────────────────────────────────────────────────────
+const _LC_PILL_CLS = {proposed:'pill-proposed',contacted:'pill-contacted',in_discussion:'pill-discussion',
+  legal_review:'pill-legal',approved:'pill-approved',active:'pill-active',declined:'pill-declined',disabled:'pill-disabled'};
+function _partnerPill(s) {
+  return `<span class="rwe-pill ${_LC_PILL_CLS[s]||''}">${esc(t('lc_'+s)||s)}</span>`;
+}
+function _sourcePill(s) {
+  const cls={pending:'pill-proposed',approved:'pill-approved',active:'pill-active',paused:'pill-draft',suspended:'pill-declined'};
+  return `<span class="rwe-pill ${cls[s]||''}">${esc(t('src_'+s)||s)}</span>`;
+}
+function _authPill(s) {
+  const cls={authorized:'pill-auth',unauthorized:'pill-unauth',expired:'pill-expired',revoked:'pill-declined'};
+  return `<span class="rwe-pill ${cls[s]||''}">${esc(t('auth_'+s)||s)}</span>`;
+}
+
+// ── Advance stage ─────────────────────────────────────────────────────────────
+async function advancePartnerStage(pid, cur) {
+  const next = _LC_NEXT_STATE[cur];
+  if (!next) return;
+  try {
+    const r = await fetch('/rwe/partners/' + pid, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({status: next}),
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(e.detail||'Update failed'); }
+    loadRwePartners();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ── Modal system ──────────────────────────────────────────────────────────────
+function openRweModal(title, bodyHTML, confirmLabel, onConfirm) {
+  document.getElementById('rweModalTitle').textContent      = title;
+  document.getElementById('rweModalBody').innerHTML         = bodyHTML;
+  document.getElementById('rweModalConfirmBtn').textContent = confirmLabel;
+  _rweModalConfirmFn = onConfirm;
+  const m = document.getElementById('rweModal');
+  m.style.display = 'flex';
+  m.classList.remove('hidden');
+}
+function closeRweModal() {
+  const m = document.getElementById('rweModal');
+  m.style.display = 'none';
+  m.classList.add('hidden');
+  _rweModalConfirmFn = null;
+}
+function _rweConfirm() { if (_rweModalConfirmFn) _rweModalConfirmFn(); }
+
+// ── Register Partner ──────────────────────────────────────────────────────────
+function openRegisterPartnerModal() {
+  const PTYPES  = ['forum','patient_org','healthcare_community','research_network'];
+  const ITYPES  = ['api','licensed_dataset','rss','manual_import','research_collaboration'];
+  const body = `
+    <div><label class="rwe-label">${esc(t('form_name'))} *</label><input id="pf_name" class="rwe-input"></div>
+    <div><label class="rwe-label">${esc(t('form_short_name'))}</label><input id="pf_sname" class="rwe-input" placeholder="e.g. AlopeciaForum"></div>
+    <div><label class="rwe-label">${esc(t('form_org_type'))} *</label>
+      <select id="pf_type" class="rwe-input"><option value="">&#x2014; select &#x2014;</option>
+        ${PTYPES.map(v=>`<option value="${v}">${esc(t('ptype_'+v))}</option>`).join('')}
+      </select></div>
+    <div><label class="rwe-label">${esc(t('form_integration_type'))}</label>
+      <select id="pf_itype" class="rwe-input"><option value="">&#x2014; select &#x2014;</option>
+        ${ITYPES.map(v=>`<option value="${v}">${esc(t('itype_'+v))}</option>`).join('')}
+      </select></div>
+    <div><label class="rwe-label">${esc(t('form_website'))}</label><input id="pf_url" class="rwe-input" placeholder="https://"></div>
+    <div><label class="rwe-label">${esc(t('form_description'))}</label><textarea id="pf_desc" rows="2" class="rwe-input" style="resize:vertical"></textarea></div>
+    <div><label class="rwe-label">${esc(t('form_notes'))}</label><textarea id="pf_notes" rows="2" class="rwe-input" style="resize:vertical"></textarea></div>`;
+  openRweModal(t('rwe_register_partner'), body, t('form_save'), submitRegisterPartner);
+}
+async function submitRegisterPartner() {
+  const name = document.getElementById('pf_name')?.value?.trim();
+  const type = document.getElementById('pf_type')?.value;
+  if (!name || !type) { alert('Name and organisation type are required.'); return; }
+  try {
+    const r = await fetch('/rwe/partners', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name, partner_type: type,
+        short_name:        document.getElementById('pf_sname')?.value?.trim()||undefined,
+        integration_type:  document.getElementById('pf_itype')?.value||undefined,
+        website_url:       document.getElementById('pf_url')?.value?.trim()||undefined,
+        description:       document.getElementById('pf_desc')?.value?.trim()||undefined,
+        internal_notes:    document.getElementById('pf_notes')?.value?.trim()||undefined,
+      }),
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(e.detail||'Create failed'); }
+    closeRweModal(); loadRwePartners();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ── Register Source ───────────────────────────────────────────────────────────
+function openRegisterSourceModal() {
+  const ap = rwePartners.filter(p => ['approved','active'].includes(p.status));
+  if (!ap.length) { alert('Advance a partner to Approved status first.'); return; }
+  const ITYPES = ['api','licensed_dataset','rss','manual_import','research_collaboration'];
+  const CATS   = ['patient_experiences','clinical_outcomes','survey_data','discussion_posts'];
+  const EVLVLS = ['anecdotal','observational','survey','registry'];
+  const body = `
+    <div><label class="rwe-label">${esc(t('rwe_partner_label'))} *</label>
+      <select id="sf_partner" class="rwe-input">${ap.map(p=>`<option value="${esc(p.partner_id)}">${esc(p.name)}</option>`).join('')}</select></div>
+    <div><label class="rwe-label">${esc(t('form_name'))} *</label><input id="sf_name" class="rwe-input"></div>
+    <div><label class="rwe-label">${esc(t('form_integration_type'))} *</label>
+      <select id="sf_itype" class="rwe-input"><option value="">&#x2014; select &#x2014;</option>
+        ${ITYPES.map(v=>`<option value="${v}">${esc(t('itype_'+v))}</option>`).join('')}
+      </select></div>
+    <div><label class="rwe-label">${esc(t('form_data_category'))}</label>
+      <select id="sf_cat" class="rwe-input"><option value="">&#x2014; select &#x2014;</option>
+        ${CATS.map(v=>`<option value="${v}">${esc(v.replace(/_/g,' '))}</option>`).join('')}
+      </select></div>
+    <div><label class="rwe-label">${esc(t('form_evidence_level'))}</label>
+      <select id="sf_ev" class="rwe-input"><option value="">&#x2014; select &#x2014;</option>
+        ${EVLVLS.map(v=>`<option value="${v}">${esc(v)}</option>`).join('')}
+      </select></div>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="rwe-label">${esc(t('form_geo_scope'))}</label><input id="sf_geo" class="rwe-input" placeholder="EU, Global…"></div>
+      <div><label class="rwe-label">${esc(t('form_est_records'))}</label><input id="sf_recs" type="number" class="rwe-input" placeholder="0" min="0"></div>
+    </div>
+    <div><label class="rwe-label">${esc(t('form_description'))}</label><textarea id="sf_desc" rows="2" class="rwe-input" style="resize:vertical"></textarea></div>`;
+  openRweModal(t('rwe_register_source'), body, t('form_save'), submitRegisterSource);
+}
+async function submitRegisterSource() {
+  const pid  = document.getElementById('sf_partner')?.value;
+  const name = document.getElementById('sf_name')?.value?.trim();
+  const it   = document.getElementById('sf_itype')?.value;
+  if (!pid || !name || !it) { alert('Partner, name, and integration type are required.'); return; }
+  try {
+    const r = await fetch('/rwe/sources', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        partner_id: pid, name, integration_type: it,
+        data_category:    document.getElementById('sf_cat')?.value||undefined,
+        evidence_level:   document.getElementById('sf_ev')?.value||undefined,
+        geographic_scope: document.getElementById('sf_geo')?.value?.trim()||undefined,
+        estimated_records:parseInt(document.getElementById('sf_recs')?.value)||undefined,
+        description:      document.getElementById('sf_desc')?.value?.trim()||undefined,
+      }),
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(e.detail||'Create failed'); }
+    const r2 = await fetch('/rwe/sources'); rweSources = await r2.json();
+    closeRweModal(); loadRweSources();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ── Add Contact ───────────────────────────────────────────────────────────────
+function openAddContactModal(pid, pname) {
+  const body = `
+    <p class="text-xs dark:text-slate-500 text-slate-400 -mt-2 mb-2">${esc(t('rwe_partner_label'))}: <strong>${esc(pname)}</strong></p>
+    <div><label class="rwe-label">${esc(t('contact_full_name'))} *</label><input id="cf_name" class="rwe-input"></div>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="rwe-label">${esc(t('contact_role'))}</label><input id="cf_role" class="rwe-input" placeholder="Data Officer"></div>
+      <div><label class="rwe-label">${esc(t('contact_dept'))}</label><input id="cf_dept" class="rwe-input"></div>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="rwe-label">${esc(t('contact_email'))}</label><input id="cf_email" type="email" class="rwe-input"></div>
+      <div><label class="rwe-label">${esc(t('contact_phone'))}</label><input id="cf_phone" class="rwe-input"></div>
+    </div>
+    <label class="flex items-center gap-2 text-xs dark:text-slate-300 text-slate-600 cursor-pointer">
+      <input id="cf_prim" type="checkbox" class="rounded"> ${esc(t('contact_primary'))}
+    </label>`;
+  openRweModal(t('rwe_add_contact'), body, t('form_save'), () => _submitContact(pid));
+}
+async function _submitContact(pid) {
+  const name = document.getElementById('cf_name')?.value?.trim();
+  if (!name) { alert('Full name is required.'); return; }
+  try {
+    const r = await fetch(`/rwe/partners/${pid}/contacts`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        full_name:  name,
+        role:       document.getElementById('cf_role')?.value?.trim()||undefined,
+        department: document.getElementById('cf_dept')?.value?.trim()||undefined,
+        email:      document.getElementById('cf_email')?.value?.trim()||undefined,
+        phone:      document.getElementById('cf_phone')?.value?.trim()||undefined,
+        is_primary: document.getElementById('cf_prim')?.checked||false,
+      }),
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(e.detail||'Create failed'); }
+    closeRweModal(); loadRwePartners();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ── Add Agreement ─────────────────────────────────────────────────────────────
+function openAddAgreementModal(pid, pname) {
+  const ATYPES = ['mou','data_sharing_agreement','nda','research_collaboration_agreement','api_license'];
+  const AKEYS  = {mou:'agmt_mou',data_sharing_agreement:'agmt_dsa',nda:'agmt_nda',
+    research_collaboration_agreement:'agmt_rca',api_license:'agmt_api_license'};
+  const body = `
+    <p class="text-xs dark:text-slate-500 text-slate-400 -mt-2 mb-2">${esc(t('rwe_partner_label'))}: <strong>${esc(pname)}</strong></p>
+    <div><label class="rwe-label">${esc(t('form_agreement_type'))} *</label>
+      <select id="af_type" class="rwe-input"><option value="">&#x2014; select &#x2014;</option>
+        ${ATYPES.map(v=>`<option value="${v}">${esc(t(AKEYS[v]||v))}</option>`).join('')}
+      </select></div>
+    <div><label class="rwe-label">${esc(t('form_title'))} *</label><input id="af_title" class="rwe-input"></div>
+    <div><label class="rwe-label">${esc(t('form_summary'))}</label><textarea id="af_sum" rows="3" class="rwe-input" style="resize:vertical"></textarea></div>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="rwe-label">Effective from</label><input id="af_from" type="date" class="rwe-input"></div>
+      <div><label class="rwe-label">Effective until</label><input id="af_until" type="date" class="rwe-input"></div>
+    </div>
+    <div><label class="rwe-label">${esc(t('form_notes'))}</label><textarea id="af_notes" rows="2" class="rwe-input" style="resize:vertical"></textarea></div>`;
+  openRweModal(t('rwe_add_agreement'), body, t('form_save'), () => _submitAgreement(pid));
+}
+async function _submitAgreement(pid) {
+  const type  = document.getElementById('af_type')?.value;
+  const title = document.getElementById('af_title')?.value?.trim();
+  if (!type || !title) { alert('Agreement type and title are required.'); return; }
+  try {
+    const r = await fetch(`/rwe/partners/${pid}/agreements`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        agreement_type: type, title,
+        summary:        document.getElementById('af_sum')?.value?.trim()||undefined,
+        effective_from: document.getElementById('af_from')?.value||undefined,
+        effective_until:document.getElementById('af_until')?.value||undefined,
+        notes:          document.getElementById('af_notes')?.value?.trim()||undefined,
+      }),
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(e.detail||'Create failed'); }
+    closeRweModal(); loadRweContracts();
+    showRweTab('rwe-contracts');
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ── New Comparison ────────────────────────────────────────────────────────────
+function openNewComparisonModal() {
+  const DIMS = ['efficacy','safety','adherence','tolerability','quality_of_life'];
+  const body = `
+    <div><label class="rwe-label">${esc(t('cmp_topic_label'))} *</label>
+      <input id="cmpf_topic" class="rwe-input" placeholder="${esc(t('cmp_topic_placeholder'))}"></div>
+    <div>
+      <label class="rwe-label">${esc(t('cmp_dimensions_label'))}</label>
+      <div class="space-y-1.5 mt-1">
+        ${DIMS.map(d=>`<label class="flex items-center gap-2 text-xs dark:text-slate-300 text-slate-600 cursor-pointer">
+          <input type="checkbox" id="cmpd_${d}" checked class="rounded">${esc(d.replace(/_/g,' '))}
+        </label>`).join('')}
+      </div>
+    </div>`;
+  openRweModal(t('rwe_new_comparison'), body, t('form_save'), _submitComparison);
+}
+async function _submitComparison() {
+  const topic = document.getElementById('cmpf_topic')?.value?.trim();
+  if (!topic) { alert('Clinical topic is required.'); return; }
+  const DIMS = ['efficacy','safety','adherence','tolerability','quality_of_life'];
+  const dims  = DIMS.filter(d => document.getElementById('cmpd_'+d)?.checked);
+  try {
+    const r = await fetch('/rwe/evidence-comparisons', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({query_topic: topic, dimensions: dims}),
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(e.detail||'Create failed'); }
+    closeRweModal(); loadRweComparisons();
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 // ─── Init ────────────────────────────────────────────────────────────────────

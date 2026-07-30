@@ -31,6 +31,7 @@ from core.models import (
     ClinicalProfile, RawSource, AuditLog,
     PatientExperience, SourceAttribution, ChatSession, ChatMessage,
 )
+from api.partners import router as rwe_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ _translate_cache: dict = {}
 
 app = FastAPI(title="HLEO API", version="1.0.0")
 Base.metadata.create_all(bind=engine)
+app.include_router(rwe_router)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
