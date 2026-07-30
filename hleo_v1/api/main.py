@@ -647,9 +647,21 @@ def assistant_chat(
         effective_search_ctx and effective_search_ctx.articles
     )
 
+    import logging as _logging
+    _diag_log = _logging.getLogger(__name__)
+    _diag_log.info(
+        "CHAT DIAG | session=%s | body.search_context=%s | body_articles=%d"
+        " | session_stored_ctx=%s | effective_articles=%d | rag_skip=%s",
+        session_id[:8],
+        "PRESENT" if body.search_context is not None else "NULL",
+        len(body.search_context.articles) if body.search_context else 0,
+        "YES" if session.search_context else "NO",
+        len(effective_search_ctx.articles) if effective_search_ctx and effective_search_ctx.articles else 0,
+        _has_search_articles_early,
+    )
+
     if _has_search_articles_early:
-        import logging as _logging
-        _logging.getLogger(__name__).info(
+        _diag_log.info(
             "RAG skipped: %d search article(s) present — HLEO DB not injected into prompt.",
             len(effective_search_ctx.articles),
         )

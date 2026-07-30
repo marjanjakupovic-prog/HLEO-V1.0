@@ -1968,14 +1968,16 @@ async function closeSession(sid) {
     });
     const data = await res.json();
     if (!res.ok) { showSessionBanner(data.detail || 'Could not close session.'); return; }
-    // If we closed the active session, clear the chat
+    // If we closed the active session, clear the chat — but keep the search context:
+    // _activeSearchCtx is search state, not session state; it must survive session ops.
     if (sid === currentSessionId) {
       currentSessionId = null;
       localStorage.removeItem('hleo-session');
-      _activeSearchCtx = null;
       const msgs = document.getElementById('chatMessages');
       msgs.innerHTML = '';
-      document.getElementById('contextBadge').classList.add('hidden');
+      // Keep context badge visible if a live search context still exists
+      const badge = document.getElementById('contextBadge');
+      if (!(_activeSearchCtx?.articles?.length > 0)) badge.classList.add('hidden');
       const welcome = document.createElement('div');
       welcome.id = 'chatWelcome';
       welcome.className = 'h-full flex flex-col items-center justify-center text-center py-10';
@@ -2010,10 +2012,11 @@ async function deleteSession(sid) {
     if (sid === currentSessionId) {
       currentSessionId = null;
       localStorage.removeItem('hleo-session');
-      _activeSearchCtx = null;
       const msgs = document.getElementById('chatMessages');
       msgs.innerHTML = '';
-      document.getElementById('contextBadge').classList.add('hidden');
+      // Keep context badge visible if a live search context still exists
+      const badge = document.getElementById('contextBadge');
+      if (!(_activeSearchCtx?.articles?.length > 0)) badge.classList.add('hidden');
       const welcome = document.createElement('div');
       welcome.id = 'chatWelcome';
       welcome.className = 'h-full flex flex-col items-center justify-center text-center py-10';
