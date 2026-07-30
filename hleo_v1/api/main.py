@@ -293,6 +293,10 @@ def run_pipeline(q: str = Query(...), db: Session = Depends(get_db)):
             logger.exception(f"Failed to process {episode_id}: {exc}")
             errors.append({"episode_id": episode_id, "error": str(exc)})
 
+    # Flat list of ALL episode_ids processed (new + pre-existing) — used by frontend
+    # to filter the profiles view to only this search's results.
+    all_episode_ids = [s["episode_id"] for s in saved]
+
     return {
         "query":           q,
         "orchestration":   orch.to_dict(),
@@ -300,6 +304,7 @@ def run_pipeline(q: str = Query(...), db: Session = Depends(get_db)):
         "saved":           len([s for s in saved if s["status"] == "saved"]),
         "already_existed": len([s for s in saved if s["status"] == "already_exists"]),
         "errors":          len(errors),
+        "episode_ids":     all_episode_ids,   # ← Feature: search-scoped profile filtering
         "results":         saved,
         "error_details":   errors,
     }
@@ -326,15 +331,22 @@ def _get_attribution(db: Session, episode_id: str) -> Optional[dict]:
 
 @app.get("/profiles")
 def list_profiles(
-    limit: int = Query(20, ge=1, le=100),
-    db:    Session = Depends(get_db),
+    limit:       int           = Query(20, ge=1, le=100),
+    episode_ids: Optional[str] = Query(None),   # comma-separated; filters to current search
+    db:          Session       = Depends(get_db),
 ):
-    """Return saved clinical profiles with source attribution."""
-    rows = db.execute(
-        select(ClinicalProfile)
-        .order_by(desc(ClinicalProfile.processed_at))
-        .limit(limit)
-    ).scalars().all()
+    """Return saved clinical profiles with source attribution.
+
+    When `episode_ids` is supplied (comma-separated), only those profiles are
+    returned — this powers the per-search isolation in the Profiles view.
+    """
+    id_filter = [eid.strip() for eid in episode_ids.split(",") if eid.strip()] \
+                if episode_ids else None
+
+    q = select(ClinicalProfile).order_by(desc(ClinicalProfile.processed_at))
+    if id_filter is not None:
+        q = q.where(ClinicalProfile.episode_id.in_(id_filter))
+    rows = db.execute(q.limit(limit)).scalars().all()
 
     result = []
     for r in rows:
@@ -357,8 +369,13 @@ def list_profiles(
             "attribution": attr,
         })
 
+    # Total count respects the same filter so the badge is accurate
+    total_q = select(func.count()).select_from(ClinicalProfile)
+    if id_filter is not None:
+        total_q = total_q.where(ClinicalProfile.episode_id.in_(id_filter))
+
     return {
-        "total":    db.execute(select(func.count()).select_from(ClinicalProfile)).scalar(),
+        "total":    db.execute(total_q).scalar(),
         "profiles": result,
     }
 
