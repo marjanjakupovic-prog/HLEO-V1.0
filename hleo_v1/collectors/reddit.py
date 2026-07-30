@@ -9,13 +9,23 @@ class RedditCollector:
 
     def search(self, query: str, limit: int = 10) -> List[RawTestimonial]:
 
-        url = f"https://www.reddit.com/search.json?q={query}&limit={limit}"
+        url = (
+            f"https://www.reddit.com/search.json"
+            f"?q={requests.utils.quote(query)}&limit={limit}&type=link&sort=relevance"
+        )
 
         headers = {
-            "User-Agent": "HLEO/1.0"
+            "User-Agent": (
+                "Mozilla/5.0 (X11; Linux x86_64; rv:126.0) Gecko/20100101 Firefox/126.0"
+            ),
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+            "Accept-Language": "en-US,en;q=0.5",
         }
 
-        r = requests.get(url, headers=headers, timeout=20)
+        try:
+            r = requests.get(url, headers=headers, timeout=20)
+        except Exception:
+            return []
 
         if r.status_code != 200:
             return []

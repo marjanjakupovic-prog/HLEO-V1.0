@@ -7,28 +7,23 @@ class EuropePMCCollector:
     BASE_URL = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
 
     def search(self, query: str, limit: int = 5):
-        params = {
-            "query": query,
-            "format": "json",
-            "pageSize": limit,
-        }
-
-        response = requests.get(
+        r = requests.get(
             self.BASE_URL,
-            params=params,
+            params={"query": query, "format": "json", "pageSize": limit,
+                    "resultType": "core"},   # "core" returns abstractText
             timeout=20,
         )
-        response.raise_for_status()
-
-        data = response.json()
+        r.raise_for_status()
+        data = r.json()
 
         results = []
-
         for item in data.get("resultList", {}).get("result", []):
+            abstract = item.get("abstractText") or item.get("abstract", "")
             results.append(
                 SearchResult(
                     title=item.get("title", ""),
                     source="Europe PMC",
+                    abstract=abstract,
                     year=int(item["pubYear"]) if item.get("pubYear") else None,
                     doi=item.get("doi"),
                     metadata={
@@ -37,5 +32,4 @@ class EuropePMCCollector:
                     },
                 )
             )
-
         return results

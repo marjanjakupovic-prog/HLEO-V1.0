@@ -4,45 +4,48 @@ from core.search_result import SearchResult
 
 
 class ClinicalTrialsCollector:
-    BASE_URL = "https://clinicaltrials.gov/api/query/studies"
+    API_URL = "https://clinicaltrials.gov/api/v2/studies"
 
     def search(self, query: str, limit: int = 5):
-        url = "https://clinicaltrials.gov/api/v2/studies"
-
-        params = {
-            "query.term": query,
-            "pageSize": limit,
-        }
-
-        response = requests.get(
-            url,
-            params=params,
+        r = requests.get(
+            self.API_URL,
+            params={"query.term": query, "pageSize": limit,
+                    "fields": "NCTId,BriefTitle,BriefSummary,DetailedDescription,"
+                              "OverallStatus,Condition,InterventionName"},
             timeout=20,
         )
-        response.raise_for_status()
-
-        data = response.json()
-
-        studies = data.get("studies", [])
+        r.raise_for_status()
+        studies = r.json().get("studies", [])
 
         results = []
-
         for study in studies:
-            protocol = study.get("protocolSection", {})
-            identification = protocol.get("identificationModule", {})
-            status = protocol.get("statusModule", {})
-            conditions = protocol.get("conditionsModule", {})
+            proto = study.get("protocolSection", {})
+            ident = proto.get("identificationModule", {})
+            status_mod = proto.get("statusModule", {})
+            cond_mod = proto.get("conditionsModule", {})
+            desc_mod = proto.get("descriptionModule", {})
+            interv_mod = proto.get("armsInterventionsModule", {})
+
+            brief = desc_mod.get("briefSummary", "")
+            detailed = desc_mod.get("detailedDescription", "")
+            abstract = (brief + "\n\n" + detailed).strip()
+
+            interventions = [
+                i.get("interventionName", "")
+                for i in interv_mod.get("interventions", [])
+            ]
 
             results.append(
                 SearchResult(
-                    title=identification.get("briefTitle", ""),
+                    title=ident.get("briefTitle", ""),
                     source="ClinicalTrials.gov",
+                    abstract=abstract,
                     metadata={
-                        "nct_id": identification.get("nctId", ""),
-                        "condition": conditions.get("conditions", []),
-                        "status": status.get("overallStatus", ""),
+                        "nct_id": ident.get("nctId", ""),
+                        "condition": cond_mod.get("conditions", []),
+                        "status": status_mod.get("overallStatus", ""),
+                        "interventions": interventions,
                     },
                 )
             )
-
         return results
