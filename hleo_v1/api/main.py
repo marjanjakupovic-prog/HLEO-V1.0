@@ -14,6 +14,7 @@ Endpoints:
 """
 import logging
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -219,10 +220,13 @@ def run_pipeline(q: str = Query(...), db: Session = Depends(get_db)):
             "meta":       item.metadata or {},
         })
 
-    saved = []
-    errors = []
+    # ── Phase 1: Pre-checks (sequential, cheap DB lookups) ───────────────────
+    # Resolve already-existing records and no-abstract skips before any LLM work.
+    # The DB session stays on the main thread for all three phases.
+    pre_results: dict[int, dict] = {}        # index → resolved entry (skip cases)
+    needs_llm:   list[tuple[int, dict]] = [] # (index, art) requiring extraction
 
-    for art in articles:
+    for i, art in enumerate(articles):
         episode_id = art["episode_id"]
 
         existing = db.execute(
@@ -230,31 +234,102 @@ def run_pipeline(q: str = Query(...), db: Session = Depends(get_db)):
         ).scalar_one_or_none()
 
         if existing:
-            saved.append({
-                "episode_id": episode_id,
-                "status":  "already_exists",
-                "db_id":   existing.id,
-                "source":  art["source"],
-                "title":   art["title"],
-                "profile": existing.extracted_payload,
+            pre_results[i] = {
+                "episode_id":  episode_id,
+                "status":      "already_exists",
+                "db_id":       existing.id,
+                "source":      art["source"],
+                "title":       art["title"],
+                "profile":     existing.extracted_payload,
                 "attribution": _get_attribution(db, episode_id),
-            })
+            }
             continue
 
         if not art["abstract"]:
-            errors.append({
+            pre_results[i] = {
+                "_is_error":  True,
                 "episode_id": episode_id,
-                "error": "No abstract available — skipped.",
-            })
+                "error":      "No abstract available — skipped.",
+            }
+            continue
+
+        needs_llm.append((i, art))
+
+    # ── Phase 2: Parallel LLM extraction ─────────────────────────────────────
+    # Only extractor.extract() calls run concurrently.
+    # max_workers=8 caps simultaneous gpt-4o calls — safe for OpenAI Tier-1 limits.
+    # Results are keyed by the original position index so order is preserved.
+    # One failure never propagates to the others.
+    _MAX_WORKERS = 8
+    llm_results: dict[int, tuple] = {}
+    # value: ("ok", payload, None) | ("error", None, err_str)
+
+    if needs_llm:
+        def _extract_one(idx_art: tuple) -> tuple:
+            idx, art = idx_art
+            try:
+                payload = extractor.extract(
+                    title=art["title"],
+                    abstract=art["abstract"],
+                    source=art["source"],
+                )
+                return idx, "ok", payload, None
+            except Exception as exc:
+                return idx, "error", None, str(exc)
+
+        logger.info(
+            "Extraction | %d articles → parallel (max_workers=%d)",
+            len(needs_llm), _MAX_WORKERS,
+        )
+        t_llm_start = datetime.now(timezone.utc)
+        with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as pool:
+            futures = {pool.submit(_extract_one, item): item[0] for item in needs_llm}
+            for fut in as_completed(futures):
+                idx, status, payload, err = fut.result()
+                llm_results[idx] = (status, payload, err)
+                if status == "error":
+                    logger.error(
+                        "Extraction failed [%s]: %s",
+                        articles[idx]["episode_id"], err,
+                    )
+                else:
+                    logger.info("Extracted %s", articles[idx]["episode_id"])
+        t_llm_elapsed = (datetime.now(timezone.utc) - t_llm_start).total_seconds()
+        logger.info(
+            "Extraction | done in %.1fs (%d ok, %d failed)",
+            t_llm_elapsed,
+            sum(1 for v in llm_results.values() if v[0] == "ok"),
+            sum(1 for v in llm_results.values() if v[0] == "error"),
+        )
+
+    # ── Phase 3: DB writes (sequential, main thread, original order) ──────────
+    # Iterate by original index so saved[] and errors[] are in input order.
+    saved = []
+    errors = []
+
+    for i, art in enumerate(articles):
+        episode_id = art["episode_id"]
+
+        # Pre-resolved in Phase 1 (DB hit or no-abstract)
+        if i in pre_results:
+            entry = pre_results[i]
+            if entry.get("_is_error"):
+                errors.append({"episode_id": entry["episode_id"], "error": entry["error"]})
+            else:
+                saved.append(entry)
+            continue
+
+        # Should always be present after Phase 2 ran
+        if i not in llm_results:
+            errors.append({"episode_id": episode_id, "error": "Extraction result missing."})
+            continue
+
+        status, payload, err = llm_results[i]
+        if status == "error":
+            errors.append({"episode_id": episode_id, "error": err})
             continue
 
         try:
-            payload = extractor.extract(
-                title=art["title"],
-                abstract=art["abstract"],
-                source=art["source"],
-            )
-
             row = ClinicalProfile(
                 episode_id=episode_id,
                 user_id=art["source"],
@@ -275,7 +350,6 @@ def run_pipeline(q: str = Query(...), db: Session = Depends(get_db)):
             db.add(row)
             db.flush()
 
-            # Source attribution
             attr = SourceAttribution(
                 profile_episode_id=episode_id,
                 source_type=art["source"],
@@ -292,18 +366,18 @@ def run_pipeline(q: str = Query(...), db: Session = Depends(get_db)):
 
             saved.append({
                 "episode_id": episode_id,
-                "status": "saved",
-                "db_id":  row.id,
-                "source": art["source"],
-                "title":  art["title"],
-                "profile": payload,
+                "status":     "saved",
+                "db_id":      row.id,
+                "source":     art["source"],
+                "title":      art["title"],
+                "profile":    payload,
                 "attribution": _get_attribution(db, episode_id),
             })
-            logger.info(f"Saved profile {episode_id}")
+            logger.info("Saved profile %s", episode_id)
 
         except Exception as exc:
             db.rollback()
-            logger.exception(f"Failed to process {episode_id}: {exc}")
+            logger.exception("Failed to write %s: %s", episode_id, exc)
             errors.append({"episode_id": episode_id, "error": str(exc)})
 
     # Flat list of ALL episode_ids processed (new + pre-existing) — used by frontend
