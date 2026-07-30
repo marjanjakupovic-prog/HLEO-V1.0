@@ -1254,7 +1254,14 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
               ? `https://doi.org/${item.data.doi}`
               : item.data.metadata?.nct_id
                 ? `https://clinicaltrials.gov/study/${item.data.metadata.nct_id}`
-                : '',
+                : (item.data.url || ''),
+          // Bibliographic identifiers — passed to the AI for accurate Key Studies citations
+          pmid:    item.data.pmid    || '',
+          doi:     item.data.doi     || '',
+          nct_id:  item.data.metadata?.nct_id || '',
+          year:    item.data.year    ? String(item.data.year)
+                 : (item.data.metadata?.pubdate || '').slice(0, 4) || '',
+          journal: item.data.metadata?.journal || '',
         })),
     };
 
@@ -1465,6 +1472,7 @@ function buildProfileCard(p) {
   const symptoms          = prof.symptoms          || [];
   const lab_findings      = prof.laboratory_findings || [];
   const biopsy_findings   = prof.biopsy_findings   || [];
+  const imaging_findings  = prof.imaging_findings  || [];
   const timeline          = prof.timeline          || [];
   const demographics      = [prof.patient_age, prof.patient_sex].filter(Boolean).join(', ');
 
@@ -1473,9 +1481,11 @@ function buildProfileCard(p) {
           class="hover:text-brand-400 transition-colors">${esc(p.title || p.episode_id)}</a>`
     : esc(p.title || p.episode_id);
 
+  const study_population  = prof.study_population  || '';
   const hasContent = diagnosis.length || treatments.length || outcomes.length
     || adverse_effects.length || evidence_level || disease_stage
-    || triggers.length || lab_findings.length || biopsy_findings.length;
+    || triggers.length || lab_findings.length || biopsy_findings.length
+    || imaging_findings.length;
 
   // Build section blocks — only render sections with data
   let sections = '';
@@ -1485,8 +1495,9 @@ function buildProfileCard(p) {
 
   // ── Demographics / stage ───────────────────────────────────────────────
   const topMeta = [];
-  if (disease_stage) topMeta.push(`<span class="cp-chip cp-chip-stage text-xs">${esc(disease_stage)}</span>`);
-  if (demographics)  topMeta.push(`<span class="text-xs dark:text-slate-500 text-slate-400">${esc(demographics)}</span>`);
+  if (disease_stage)    topMeta.push(`<span class="cp-chip cp-chip-stage text-xs">${esc(disease_stage)}</span>`);
+  if (study_population) topMeta.push(`<span class="cp-chip cp-chip-lab text-xs">${esc(study_population)}</span>`);
+  if (demographics)     topMeta.push(`<span class="text-xs dark:text-slate-500 text-slate-400">${esc(demographics)}</span>`);
 
   // ── Diagnosis ──────────────────────────────────────────────────────────
   if (diagnosis.length) {
@@ -1547,7 +1558,7 @@ function buildProfileCard(p) {
   }
 
   // ── Lab / Biopsy / Timeline ────────────────────────────────────────────
-  const labItems = [...lab_findings, ...biopsy_findings].filter(Boolean);
+  const labItems = [...lab_findings, ...biopsy_findings, ...imaging_findings].filter(Boolean);
   if (labItems.length) {
     sections += `<div class="cp-section">
       <div class="cp-section-label">${ICONS.labs} ${esc(t('profile_section_labs'))}</div>

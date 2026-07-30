@@ -215,7 +215,7 @@ def run_pipeline(q: str = Query(...), db: Session = Depends(get_db)):
             "url":        f"https://clinicaltrials.gov/study/{nct}" if nct != "unknown" else "",
             "external_id": nct,
             "journal":    "",
-            "pub_year":   "",
+            "pub_year":   str(item.year or ""),
             "meta":       item.metadata or {},
         })
 
@@ -551,6 +551,12 @@ class SearchArticleCtx(BaseModel):
     title: str
     abstract: Optional[str] = ""
     url: Optional[str] = ""
+    # Bibliographic identifiers — used by the AI for accurate Key Studies citations
+    pmid: Optional[str] = ""
+    doi: Optional[str] = ""
+    nct_id: Optional[str] = ""
+    year: Optional[str] = ""
+    journal: Optional[str] = ""
 
 class SearchContext(BaseModel):
     """
@@ -660,25 +666,7 @@ def assistant_chat(
         effective_search_ctx and effective_search_ctx.articles
     )
 
-    import logging as _logging
-    _diag_log = _logging.getLogger(__name__)
-    _diag_log.info(
-        "CHAT DIAG | session=%s | body.search_context=%s | body_articles=%d"
-        " | session_stored_ctx=%s | effective_articles=%d | rag_skip=%s",
-        session_id[:8],
-        "PRESENT" if body.search_context is not None else "NULL",
-        len(body.search_context.articles) if body.search_context else 0,
-        "YES" if session.search_context else "NO",
-        len(effective_search_ctx.articles) if effective_search_ctx and effective_search_ctx.articles else 0,
-        _has_search_articles_early,
-    )
-
-    if _has_search_articles_early:
-        _diag_log.info(
-            "RAG skipped: %d search article(s) present — HLEO DB not injected into prompt.",
-            len(effective_search_ctx.articles),
-        )
-    else:
+    if not _has_search_articles_early:
         # Search clinical profiles
         cp_rows = db.execute(
             select(ClinicalProfile)
@@ -693,17 +681,23 @@ def assistant_chat(
             payload_text = _json.dumps(payload).lower()
             if any(word in title or word in payload_text
                    for word in user_msg_lower.split() if len(word) > 3):
-                diag     = ", ".join(payload.get("diagnosis", [])[:3])
-                treats   = ", ".join(payload.get("treatments", [])[:4])
-                outcomes = ", ".join(payload.get("outcomes", [])[:3])
-                ev_level = payload.get("evidence_level", "")
+                diag       = ", ".join(payload.get("diagnosis", [])[:3])
+                treats     = ", ".join(payload.get("treatments", [])[:4])
+                dosages    = ", ".join(payload.get("dosages", [])[:4])
+                outcomes   = ", ".join(payload.get("outcomes", [])[:3])
+                ae         = ", ".join(payload.get("adverse_effects", [])[:3])
+                ev_level   = payload.get("evidence_level", "")
+                study_pop  = payload.get("study_population", "")
                 snippet  = (
                     f"[Clinical Profile — {cp.user_id.upper()}, {vp.get('pub_year','')}] "
                     f"'{vp.get('title','')[:100]}'"
-                    f"{f' ({ev_level})' if ev_level else ''}\n"
+                    f"{f' ({ev_level})' if ev_level else ''}"
+                    f"{f' [{study_pop}]' if study_pop else ''}\n"
                     f"  Diagnosis: {diag or 'N/A'}\n"
-                    f"  Treatments: {treats or 'N/A'}\n"
-                    f"  Outcomes: {outcomes or 'N/A'}"
+                    f"  Treatments: {treats or 'N/A'}"
+                    f"{f' | Dosages: {dosages}' if dosages else ''}\n"
+                    f"  Outcomes: {outcomes or 'N/A'}\n"
+                    f"  Adverse effects: {ae or 'N/A'}"
                 )
                 context_snippets.append(snippet)
                 context_episode_ids.append(cp.episode_id)
@@ -769,8 +763,18 @@ def assistant_chat(
                          "clinicaltrials": "ClinicalTrials.gov"}.get(art.source, art.source)
             abstract_excerpt = (art.abstract or "").strip()
             url_part = f"\n     URL: {art.url}" if art.url else ""
+            # Build identifier string so the AI can cite accurately without hallucinating IDs
+            id_parts = []
+            if art.pmid:   id_parts.append(f"PMID {art.pmid}")
+            if art.doi:    id_parts.append(f"DOI {art.doi}")
+            if art.nct_id: id_parts.append(f"NCT {art.nct_id}")
+            id_str = f" | {' | '.join(id_parts)}" if id_parts else ""
+            meta_parts = []
+            if art.journal: meta_parts.append(art.journal)
+            if art.year:    meta_parts.append(art.year)
+            meta_str = f" ({', '.join(meta_parts)})" if meta_parts else ""
             art_lines.append(
-                f"  [{i}] [{src_label}] {art.title}\n"
+                f"  [{i}] [{src_label}]{id_str}{meta_str} {art.title}\n"
                 f"      Abstract: {abstract_excerpt or 'N/A'}"
                 f"{url_part}"
             )

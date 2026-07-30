@@ -19,11 +19,21 @@ class EuropePMCCollector:
         results = []
         for item in data.get("resultList", {}).get("result", []):
             abstract = item.get("abstractText") or item.get("abstract", "")
+            # Extract authors list (authorList → author[].fullName or .lastName + .firstName)
+            author_list = item.get("authorList", {}).get("author", [])
+            authors = []
+            for a in author_list:
+                name = a.get("fullName") or (
+                    " ".join(filter(None, [a.get("firstName", ""), a.get("lastName", "")]))
+                )
+                if name:
+                    authors.append(name)
             results.append(
                 SearchResult(
                     title=item.get("title", ""),
                     source="Europe PMC",
                     abstract=abstract,
+                    authors=authors,
                     year=int(item["pubYear"]) if item.get("pubYear") else None,
                     doi=item.get("doi"),
                     metadata={
