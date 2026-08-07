@@ -9,6 +9,7 @@ from core.extractor import LLMExtractor
 from core.validator import HLEOValidator
 from core.judge import HLEOJudge
 from search.source_fetcher import SourceFetcher
+from core.semantic_search import SemanticSearch
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class HLEOPipeline:
         self.validator = HLEOValidator()
         self.judge = HLEOJudge()
         self.fetcher = SourceFetcher()
+        self.semantic = SemanticSearch()
 
     def collect(self, query: str) -> dict:
         """
@@ -81,8 +83,16 @@ class HLEOPipeline:
     def process(self, query: str) -> list:
         """Full pipeline: collect → LLM extract → validate → judge."""
         logger.info("Pipeline avviata")
+        semantic = self.semantic.search(query)
 
-        data = self.collect(query)
+        data = {
+            "pubmed": semantic.pubmed,
+            "europepmc": semantic.europepmc,
+            "clinicaltrials": semantic.clinicaltrials,
+            "reddit": semantic.reddit,
+        }
+
+        # data è già stata ottenuta dal SemanticSearch
 
         posts = data["reddit"]
         articles = data["pubmed"]
